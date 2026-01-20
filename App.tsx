@@ -12,8 +12,6 @@ import {
   ShoppingCart,
   Menu,
   X,
-  ChevronLeft,
-  ChevronRight,
   Instagram,
   MessageCircle,
   Palette
@@ -36,7 +34,6 @@ import AdminSettings from './pages/AdminSettings';
 import AdminAds from './pages/AdminAds';
 import AdminThemes from './pages/AdminThemes';
 
-// Context for global state
 interface AppContextType {
   cart: OrderItem[];
   addToCart: (product: Product, qty?: number) => void;
@@ -77,12 +74,9 @@ const App: React.FC = () => {
     localStorage.setItem('nina_cart', JSON.stringify(cart));
   }, [cart]);
 
-  // Inject dynamic theme styles
   useEffect(() => {
     document.documentElement.style.setProperty('--primary-color', activeTheme.primaryColor);
     document.documentElement.style.setProperty('--secondary-color', activeTheme.secondaryColor);
-    
-    // Update body background color
     document.body.style.backgroundColor = activeTheme.secondaryColor;
   }, [activeTheme]);
 
@@ -131,7 +125,6 @@ const App: React.FC = () => {
       }
       return newCount;
     });
-    // Reset tap count after 2 seconds of inactivity
     setTimeout(() => setAdminTapCount(0), 2000);
   };
 
@@ -143,8 +136,7 @@ const App: React.FC = () => {
       settings, categories, products, refreshData, activeTheme
     }}>
       <HashRouter>
-        <div className="min-h-screen flex flex-col font-cairo overflow-x-hidden" style={{'--primary-color': activeTheme.primaryColor} as any}>
-          {/* Header */}
+        <div className="min-h-screen flex flex-col font-cairo overflow-x-hidden">
           <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md shadow-sm border-b border-gray-100">
             <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
               <button 
@@ -161,7 +153,7 @@ const App: React.FC = () => {
               </Link>
 
               <div className="hidden lg:flex items-center gap-8 text-gray-600 font-bold">
-                <Link to="/" className="transition-colors" style={{color: location.hash === '#/' ? activeTheme.primaryColor : undefined}}>الرئيسية</Link>
+                <Link to="/" className="hover:opacity-70 transition-colors">الرئيسية</Link>
                 {categories.slice(0, 4).map(cat => (
                   <Link key={cat.id} to={`/?cat=${cat.id}`} className="hover:opacity-70 transition-colors">{cat.name}</Link>
                 ))}
@@ -180,7 +172,6 @@ const App: React.FC = () => {
             </div>
           </header>
 
-          {/* Mobile Menu */}
           {isMenuOpen && (
             <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm lg:hidden transition-opacity">
               <div className="absolute top-0 right-0 w-72 h-full bg-white shadow-xl flex flex-col p-8 animate-slide-in-right">
@@ -200,10 +191,6 @@ const App: React.FC = () => {
                     </div>
                   </div>
                 </nav>
-                <div className="mt-auto pt-8 border-t border-gray-100 flex justify-center gap-6">
-                  <a href={settings.instagramUrl} target="_blank" rel="noreferrer" className="p-4 rounded-full hover:bg-opacity-80 transition-all" style={{backgroundColor: `${activeTheme.primaryColor}10`, color: activeTheme.primaryColor}}><Instagram size={24} /></a>
-                  <a href={`https://wa.me/${settings.whatsappNumber}`} target="_blank" rel="noreferrer" className="p-4 bg-green-50 text-green-600 rounded-full hover:bg-green-600 hover:text-white transition-all"><MessageCircle size={24} /></a>
-                </div>
               </div>
             </div>
           )}
@@ -265,16 +252,6 @@ const App: React.FC = () => {
           </footer>
         </div>
       </HashRouter>
-      <style>{`
-        :root {
-          --primary-color: ${activeTheme.primaryColor};
-          --secondary-color: ${activeTheme.secondaryColor};
-        }
-        .pink-primary { color: var(--primary-color); }
-        .pink-primary-bg { background-color: var(--primary-color); }
-        .pink-secondary-bg { background-color: var(--secondary-color); }
-        a:hover { opacity: 0.8; }
-      `}</style>
     </AppContext.Provider>
   );
 };
@@ -282,6 +259,7 @@ const App: React.FC = () => {
 const AdminLayout: React.FC = () => {
   const [authorized, setAuthorized] = useState(false);
   const { activeTheme } = useApp();
+  const location = useLocation();
   
   useEffect(() => {
     const isAuth = sessionStorage.getItem('admin_session') === 'true';
@@ -302,24 +280,23 @@ const AdminLayout: React.FC = () => {
           <h2 className="text-2xl font-bold" style={{color: activeTheme.primaryColor}}>لوحة الإدارة</h2>
         </div>
         <nav className="flex flex-col gap-3">
-          <Link to="/admin" className="flex items-center gap-4 p-4 rounded-2xl hover:bg-gray-50 text-gray-600 transition-all font-bold">
-            <BarChart3 size={24} /> الإحصائيات العامة
-          </Link>
-          <Link to="/admin/orders" className="flex items-center gap-4 p-4 rounded-2xl hover:bg-gray-50 text-gray-600 transition-all font-bold">
-            <Package size={24} /> إدارة الطلبات
-          </Link>
-          <Link to="/admin/products" className="flex items-center gap-4 p-4 rounded-2xl hover:bg-gray-50 text-gray-600 transition-all font-bold">
-            <Grid size={24} /> المنتجات والأصناف
-          </Link>
-          <Link to="/admin/ads" className="flex items-center gap-4 p-4 rounded-2xl hover:bg-gray-50 text-gray-600 transition-all font-bold">
-            <ShoppingBag size={24} /> مدير الإعلانات
-          </Link>
-          <Link to="/admin/themes" className="flex items-center gap-4 p-4 rounded-2xl hover:bg-gray-50 text-gray-600 transition-all font-bold">
-            <Palette size={24} /> الثيمات والمناسبات
-          </Link>
-          <Link to="/admin/settings" className="flex items-center gap-4 p-4 rounded-2xl hover:bg-gray-50 text-gray-600 transition-all font-bold">
-            <SettingsIcon size={24} /> الإعدادات
-          </Link>
+          {[
+            { to: '/admin', icon: BarChart3, label: 'الإحصائيات' },
+            { to: '/admin/orders', icon: Package, label: 'الطلبات' },
+            { to: '/admin/products', icon: Grid, label: 'المنتجات' },
+            { to: '/admin/ads', icon: ShoppingBag, label: 'الإعلانات' },
+            { to: '/admin/themes', icon: Palette, label: 'الثيمات' },
+            { to: '/admin/settings', icon: SettingsIcon, label: 'الإعدادات' },
+          ].map(link => (
+            <Link 
+              key={link.to}
+              to={link.to} 
+              className={`flex items-center gap-4 p-4 rounded-2xl transition-all font-bold ${location.pathname === link.to ? 'bg-pink-50 text-pink-600' : 'text-gray-600 hover:bg-gray-50'}`}
+              style={location.pathname === link.to ? { backgroundColor: `${activeTheme.primaryColor}10`, color: activeTheme.primaryColor } : {}}
+            >
+              <link.icon size={24} /> {link.label}
+            </Link>
+          ))}
           <button 
             onClick={() => {
               sessionStorage.removeItem('admin_session');
