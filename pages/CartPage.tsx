@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-// Added ShoppingCart to imports
 import { ShoppingBag, Trash2, ArrowRight, Minus, Plus, History, Clock, CheckCircle2, XCircle, ChevronLeft, AlertCircle, ShoppingCart } from 'lucide-react';
 import { useApp } from '../App';
 import { dataService } from '../services/dataService';
@@ -42,9 +41,9 @@ const CartPage: React.FC = () => {
 
   const getStatusText = (status: OrderStatus) => {
     switch (status) {
-      case OrderStatus.PENDING: return 'قيد المراجعة';
-      case OrderStatus.ACCEPTED: return 'تم القبول';
-      case OrderStatus.REJECTED: return 'تم الإلغاء';
+      case OrderStatus.PENDING: return 'بانتظار التأكيد';
+      case OrderStatus.ACCEPTED: return 'تم قبول الطلب';
+      case OrderStatus.REJECTED: return 'طلب ملغي';
       case OrderStatus.EXECUTED: return 'تم التوصيل';
       default: return 'غير معروف';
     }
@@ -81,7 +80,7 @@ const CartPage: React.FC = () => {
           <section>
             <div className="flex items-center gap-3 mb-10 pr-4 border-r-4" style={{ borderColor: activeTheme.primaryColor }}>
               <ShoppingCart size={28} className="text-gray-400" />
-              <h1 className="text-3xl font-bold text-gray-800">سلة المشتريات</h1>
+              <h1 className="text-3xl font-bold text-gray-800">السلة الحالية</h1>
             </div>
             {cart.length > 0 ? (
               <div className="space-y-6">
@@ -118,7 +117,7 @@ const CartPage: React.FC = () => {
             <section>
               <div className="flex items-center gap-3 mb-8 pr-4 border-r-4" style={{ borderColor: activeTheme.primaryColor }}>
                 <Clock size={24} className="text-yellow-500" />
-                <h2 className="text-2xl font-bold text-gray-800">طلبات قيد المراجعة</h2>
+                <h2 className="text-2xl font-bold text-gray-800">طلبات بانتظار التأكيد</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {pendingOrders.map(order => (
@@ -159,7 +158,7 @@ const CartPage: React.FC = () => {
             <section>
               <div className="flex items-center gap-3 mb-8 pr-4 border-r-4" style={{ borderColor: activeTheme.primaryColor }}>
                 <History size={24} className="text-gray-400" />
-                <h2 className="text-2xl font-bold text-gray-800">سجل الطلبات المكتملة</h2>
+                <h2 className="text-2xl font-bold text-gray-800">سجل الطلبات السابقة</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {previousOrders.map(order => (
@@ -228,7 +227,7 @@ const CartPage: React.FC = () => {
               <div className="mt-8 flex items-start gap-3 bg-blue-50 p-4 rounded-2xl border border-blue-100">
                 <AlertCircle size={20} className="text-blue-500 shrink-0" />
                 <p className="text-[11px] text-blue-700 leading-relaxed">
-                  بمجرد تقديم طلبك، سيظهر في قسم "قيد المراجعة" حتى يقوم موظفو Nino Care بتأكيده عبر الواتساب.
+                  بمجرد تقديم طلبك، سيظهر في قسم "بانتظار التأكيد" حتى يتم مراجعته من قبل الإدارة.
                 </p>
               </div>
             </div>
