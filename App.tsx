@@ -148,7 +148,7 @@ const App: React.FC = () => {
               </button>
 
               <Link to="/" className="flex items-center gap-3">
-                <img src="https://i.imgur.com/Wm6GITt.png" alt="Nino Care" className="h-14 w-auto object-contain" />
+                <img src="https://i.imgur.com/Wm6GITt.png" alt="Nino Care" className="h-14 w-14 rounded-full object-cover border-2 shadow-sm" style={{borderColor: activeTheme.primaryColor}} />
                 <span className="text-2xl font-bold hidden sm:inline" style={{color: activeTheme.primaryColor}}>Nino Care</span>
               </Link>
 
@@ -176,7 +176,7 @@ const App: React.FC = () => {
             <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm lg:hidden transition-opacity">
               <div className="absolute top-0 right-0 w-72 h-full bg-white shadow-xl flex flex-col p-8 animate-slide-in-right">
                 <div className="flex justify-between items-center mb-8">
-                  <img src="https://i.imgur.com/Wm6GITt.png" alt="Logo" className="h-10 w-auto" />
+                  <img src="https://i.imgur.com/Wm6GITt.png" alt="Logo" className="h-12 w-12 rounded-full object-cover border-2" style={{borderColor: activeTheme.primaryColor}} />
                   <button onClick={() => setIsMenuOpen(false)} className="p-2 hover:bg-gray-100 rounded-full"><X /></button>
                 </div>
                 <nav className="flex flex-col gap-6 text-xl">
@@ -217,7 +217,7 @@ const App: React.FC = () => {
           <footer className="bg-white border-t border-gray-100 mt-12 py-16">
             <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-16 text-center md:text-right">
               <div>
-                <img src="https://i.imgur.com/Wm6GITt.png" alt="Nino Care" className="h-20 w-auto mb-6 mx-auto md:mx-0" />
+                <img src="https://i.imgur.com/Wm6GITt.png" alt="Nino Care" className="h-24 w-24 rounded-full object-cover mb-6 mx-auto md:mx-0 border-4 shadow-md" style={{borderColor: activeTheme.primaryColor}} />
                 <p className="text-gray-500 leading-relaxed font-medium">أفضل منتجات التجميل والعناية بالبشرة المختارة بعناية لتناسب جمالك الطبيعي وتبرز سحرك الخاص.</p>
               </div>
               <div className="space-y-4">
@@ -252,7 +252,7 @@ const App: React.FC = () => {
           </footer>
         </div>
       </HashRouter>
-    </AppContext.Provider>
+    </div>
   );
 };
 
@@ -276,7 +276,7 @@ const AdminLayout: React.FC = () => {
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row rtl">
       <aside className="w-full md:w-72 bg-white border-l border-gray-200 p-8 shadow-sm z-10">
         <div className="mb-10 flex flex-col items-center">
-          <img src="https://i.imgur.com/Wm6GITt.png" alt="Admin" className="h-16 w-auto mb-4" />
+          <img src="https://i.imgur.com/Wm6GITt.png" alt="Admin" className="h-20 w-20 rounded-full object-cover mb-4 border-2 border-gray-100 shadow-sm" />
           <h2 className="text-2xl font-bold" style={{color: activeTheme.primaryColor}}>لوحة الإدارة</h2>
         </div>
         <nav className="flex flex-col gap-3">
