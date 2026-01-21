@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Search, ShoppingBag, Heart, Moon, Star, Snowflake, Sparkles, Flame } from 'lucide-react';
@@ -14,10 +15,15 @@ const HomePage: React.FC = () => {
   
   const categoryId = searchParams.get('cat');
 
+  // Fix: Await the async getAds call inside useEffect
   useEffect(() => {
-    const fetchedAds = dataService.getAds().filter(a => a.active);
-    // Shuffle ads
-    setAds([...fetchedAds].sort(() => Math.random() - 0.5));
+    const fetchAds = async () => {
+      const allAds = await dataService.getAds();
+      const activeAds = allAds.filter(a => a.active);
+      // Shuffle ads
+      setAds([...activeAds].sort(() => Math.random() - 0.5));
+    };
+    fetchAds();
   }, []);
 
   useEffect(() => {

@@ -7,13 +7,20 @@ const AdminLoginPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Fix: Make handleSubmit async and await settings from dataService
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const settings = dataService.getSettings();
-    if (password === settings.adminPassword) {
-      sessionStorage.setItem('admin_session', 'true');
-      window.location.hash = '/admin';
-    } else {
+    try {
+      const settings = await dataService.getSettings();
+      if (password === settings.adminPassword) {
+        sessionStorage.setItem('admin_session', 'true');
+        window.location.hash = '/admin';
+      } else {
+        setError(true);
+        setTimeout(() => setError(false), 2000);
+      }
+    } catch (err) {
+      console.error(err);
       setError(true);
       setTimeout(() => setError(false), 2000);
     }

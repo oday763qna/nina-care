@@ -38,7 +38,8 @@ const CheckoutPage: React.FC = () => {
     return cleanPhone.length >= 9;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Fix: Make handleSubmit async to support awaiting dataService.getOrders and saveOrders
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -76,13 +77,20 @@ const CheckoutPage: React.FC = () => {
       createdAt: Date.now()
     };
 
-    const existingOrders = dataService.getOrders();
-    dataService.saveOrders([newOrder, ...existingOrders]);
+    try {
+      // Fix: Await async getOrders call and use the newly added saveOrders plural method
+      const existingOrders = await dataService.getOrders();
+      await dataService.saveOrders([newOrder, ...existingOrders]);
 
-    setTimeout(() => {
-      clearCart();
-      navigate(`/order-status/${newOrder.id}`);
-    }, 1500);
+      setTimeout(() => {
+        clearCart();
+        navigate(`/order-status/${newOrder.id}`);
+      }, 1500);
+    } catch (err) {
+      console.error(err);
+      setError('حدث خطأ أثناء إتمام الطلب، يرجى المحاولة لاحقاً');
+      setLoading(false);
+    }
   };
 
   return (

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Trash2, Eye, EyeOff, Upload, Camera, Image as ImageIcon, X, Check } from 'lucide-react';
 import { dataService } from '../services/dataService';
@@ -10,8 +11,12 @@ const AdminAds: React.FC = () => {
   const [successMsg, setSuccessMsg] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Fix: Await async getAds call inside useEffect
   useEffect(() => {
-    setAds(dataService.getAds());
+    const load = async () => {
+      setAds(await dataService.getAds());
+    };
+    load();
   }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -37,7 +42,8 @@ const AdminAds: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
-  const handleAdd = () => {
+  // Fix: Make handleAdd async and use saveAds plural method
+  const handleAdd = async () => {
     if (!previewImage) return;
     
     const newAd: Ad = { 
@@ -47,7 +53,8 @@ const AdminAds: React.FC = () => {
     };
     
     const updated = [newAd, ...ads];
-    dataService.saveAds(updated);
+    // Fix: Await saveAds
+    await dataService.saveAds(updated);
     setAds(updated);
     setPreviewImage(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -56,16 +63,18 @@ const AdminAds: React.FC = () => {
     setTimeout(() => setSuccessMsg(false), 3000);
   };
 
-  const handleToggle = (id: string) => {
+  // Fix: Make handleToggle async and use saveAds plural
+  const handleToggle = async (id: string) => {
     const updated = ads.map(a => a.id === id ? { ...a, active: !a.active } : a);
-    dataService.saveAds(updated);
+    await dataService.saveAds(updated);
     setAds(updated);
   };
 
-  const handleDelete = (id: string) => {
+  // Fix: Make handleDelete async and use saveAds plural
+  const handleDelete = async (id: string) => {
     if (window.confirm('هل أنت متأكد من حذف هذا الإعلان بشكل نهائي؟')) {
       const updated = ads.filter(a => a.id !== id);
-      dataService.saveAds(updated);
+      await dataService.saveAds(updated);
       setAds([...updated]); // Trigger state update with a new array reference
     }
   };

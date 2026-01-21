@@ -1,12 +1,34 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Package, ShoppingCart, TrendingUp, AlertCircle, TrendingDown } from 'lucide-react';
 import { dataService } from '../services/dataService';
-import { OrderStatus } from '../types';
+import { Order, Product, OrderStatus } from '../types';
 
 const AdminDashboard: React.FC = () => {
-  const orders = dataService.getOrders();
-  const products = dataService.getProducts();
+  // Fix: Move products and orders to local state instead of calling async functions in component body
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [o, p] = await Promise.all([
+          dataService.getOrders(),
+          dataService.getProducts()
+        ]);
+        setOrders(o);
+        setProducts(p);
+      } catch (err) {
+        console.error("Error loading dashboard data:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  if (isLoading) return <div className="p-8 text-center font-bold">جاري تحميل الإحصائيات...</div>;
 
   const totalSales = orders
     .filter(o => o.status === OrderStatus.ACCEPTED || o.status === OrderStatus.EXECUTED)
@@ -90,7 +112,7 @@ const AdminDashboard: React.FC = () => {
         <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
           <h2 className="text-xl font-bold mb-6">المنتجات الأقل طلباً</h2>
           <div className="space-y-4">
-            {productStats.reverse().slice(0, 5).map((stat, i) => (
+            {[...productStats].reverse().slice(0, 5).map((stat, i) => (
               <div key={i} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
                 <span className="font-bold">{stat.name}</span>
                 <span className="bg-gray-200 text-gray-600 px-3 py-1 rounded-full text-sm font-bold">{stat.count} طلب</span>

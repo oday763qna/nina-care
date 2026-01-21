@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingBag, Trash2, ArrowRight, Minus, Plus, History, Clock, CheckCircle2, XCircle, ChevronLeft, AlertCircle, ShoppingCart } from 'lucide-react';
@@ -11,10 +12,14 @@ const CartPage: React.FC = () => {
   const [previousOrders, setPreviousOrders] = useState<Order[]>([]);
   const navigate = useNavigate();
 
+  // Fix: Await the async getOrders call inside useEffect
   useEffect(() => {
-    const allOrders = dataService.getOrders();
-    setPendingOrders(allOrders.filter(o => o.status === OrderStatus.PENDING).sort((a, b) => b.createdAt - a.createdAt));
-    setPreviousOrders(allOrders.filter(o => o.status !== OrderStatus.PENDING).sort((a, b) => b.createdAt - a.createdAt));
+    const fetchOrders = async () => {
+      const allOrders = await dataService.getOrders();
+      setPendingOrders(allOrders.filter(o => o.status === OrderStatus.PENDING).sort((a, b) => b.createdAt - a.createdAt));
+      setPreviousOrders(allOrders.filter(o => o.status !== OrderStatus.PENDING).sort((a, b) => b.createdAt - a.createdAt));
+    };
+    fetchOrders();
   }, []);
 
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.qty, 0);

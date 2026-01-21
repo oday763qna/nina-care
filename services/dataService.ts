@@ -1,54 +1,82 @@
 
-import { Product, Category, Order, Ad, Settings, OrderStatus } from '../types';
-import { DEFAULT_SETTINGS, INITIAL_ADS } from '../constants';
-
-const STORAGE_KEYS = {
-  PRODUCTS: 'nina_products',
-  CATEGORIES: 'nina_categories',
-  ORDERS: 'nina_orders',
-  ADS: 'nina_ads',
-  SETTINGS: 'nina_settings'
-};
+import { supabase } from './supabaseClient';
+import { Product, Category, Order, Ad, Settings } from '../types';
 
 export const dataService = {
-  getProducts: (): Product[] => {
-    const data = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
-    return data ? JSON.parse(data) : [];
+  // المنتجات
+  getProducts: async (): Promise<Product[]> => {
+    const { data, error } = await supabase.from('products').select('*').order('createdAt', { ascending: false });
+    if (error) throw error;
+    return data || [];
   },
-  saveProducts: (products: Product[]) => {
-    localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
+  saveProduct: async (product: Product) => {
+    const { error } = await supabase.from('products').upsert(product);
+    if (error) throw error;
   },
-  getCategories: (): Category[] => {
-    const data = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
-    return data ? JSON.parse(data) : [{ id: '1', name: 'جميع المنتجات' }];
+  // Added plural save method to fix error in AdminProducts.tsx
+  saveProducts: async (products: Product[]) => {
+    const { error } = await supabase.from('products').upsert(products);
+    if (error) throw error;
   },
-  saveCategories: (categories: Category[]) => {
-    localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(categories));
+  deleteProduct: async (id: string) => {
+    const { error } = await supabase.from('products').delete().eq('id', id);
+    if (error) throw error;
   },
-  getOrders: (): Order[] => {
-    const data = localStorage.getItem(STORAGE_KEYS.ORDERS);
-    return data ? JSON.parse(data) : [];
+
+  // التصنيفات
+  getCategories: async (): Promise<Category[]> => {
+    const { data, error } = await supabase.from('categories').select('*');
+    if (error) throw error;
+    return data || [];
   },
-  saveOrders: (orders: Order[]) => {
-    localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders));
+  saveCategory: async (category: Category) => {
+    const { error } = await supabase.from('categories').insert(category);
+    if (error) throw error;
   },
-  getSettings: (): Settings => {
-    const data = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-    return data ? JSON.parse(data) : DEFAULT_SETTINGS;
+  // Added plural save method to fix error in AdminProducts.tsx
+  saveCategories: async (categories: Category[]) => {
+    const { error } = await supabase.from('categories').upsert(categories);
+    if (error) throw error;
   },
-  saveSettings: (settings: Settings) => {
-    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+
+  // الطلبات
+  getOrders: async (): Promise<Order[]> => {
+    const { data, error } = await supabase.from('orders').select('*').order('createdAt', { ascending: false });
+    if (error) throw error;
+    return data || [];
   },
-  getAds: (): Ad[] => {
-    const data = localStorage.getItem(STORAGE_KEYS.ADS);
-    if (!data) {
-      const initial = INITIAL_ADS.map((url, i) => ({ id: String(i), imageUrl: url, active: true }));
-      localStorage.setItem(STORAGE_KEYS.ADS, JSON.stringify(initial));
-      return initial;
-    }
-    return JSON.parse(data);
+  createOrder: async (order: Order) => {
+    const { error } = await supabase.from('orders').insert(order);
+    if (error) throw error;
   },
-  saveAds: (ads: Ad[]) => {
-    localStorage.setItem(STORAGE_KEYS.ADS, JSON.stringify(ads));
+  // Added plural save method to fix error in CheckoutPage.tsx and AdminOrders.tsx
+  saveOrders: async (orders: Order[]) => {
+    const { error } = await supabase.from('orders').upsert(orders);
+    if (error) throw error;
+  },
+  updateOrderStatus: async (id: string, status: string, reason?: string) => {
+    const { error } = await supabase.from('orders').update({ status, cancelReason: reason }).eq('id', id);
+    if (error) throw error;
+  },
+
+  // الإعدادات والإعلانات
+  getSettings: async (): Promise<Settings> => {
+    const { data, error } = await supabase.from('settings').select('*').single();
+    if (error) throw error;
+    return data;
+  },
+  saveSettings: async (settings: Settings) => {
+    const { error } = await supabase.from('settings').update(settings).eq('id', 'global');
+    if (error) throw error;
+  },
+  getAds: async (): Promise<Ad[]> => {
+    const { data, error } = await supabase.from('ads').select('*');
+    if (error) throw error;
+    return data || [];
+  },
+  // Added plural save method to fix error in AdminAds.tsx
+  saveAds: async (ads: Ad[]) => {
+    const { error } = await supabase.from('ads').upsert(ads);
+    if (error) throw error;
   }
 };

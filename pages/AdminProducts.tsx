@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-/* Added Grid to the lucide-react import list to fix "Cannot find name 'Grid'" error on line 206 */
 import { Plus, Edit, Trash2, Tag, X, Image as ImageIcon, Upload, Camera, Check, Grid } from 'lucide-react';
 import { dataService } from '../services/dataService';
 import { Product, Category, Discount } from '../types';
@@ -32,14 +31,20 @@ const AdminProducts: React.FC = () => {
 
   const [newCatName, setNewCatName] = useState('');
 
+  // Fix: Await async getProducts and getCategories calls inside useEffect
   useEffect(() => {
-    setProducts(dataService.getProducts());
-    setCategories(dataService.getCategories());
+    const load = async () => {
+      setProducts(await dataService.getProducts());
+      setCategories(await dataService.getCategories());
+    };
+    load();
   }, []);
 
-  const handleAuth = (e: React.FormEvent) => {
+  // Fix: Make handleAuth async to await settings from dataService
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === dataService.getSettings().productMgmtPassword) {
+    const settings = await dataService.getSettings();
+    if (password === settings.productMgmtPassword) {
       setIsAuthorized(true);
     } else {
       alert('كلمة مرور خاطئة لإدارة المنتجات');
@@ -66,7 +71,8 @@ const AdminProducts: React.FC = () => {
     setForm({ ...form, images: newImages });
   };
 
-  const handleSaveProduct = (e: React.FormEvent) => {
+  // Fix: Make handleSaveProduct async and use the newly added saveProducts plural method
+  const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!form.images[0]) {
@@ -95,7 +101,8 @@ const AdminProducts: React.FC = () => {
       updated = [newProduct, ...products];
     }
 
-    dataService.saveProducts(updated);
+    // Fix: Await saveProducts
+    await dataService.saveProducts(updated);
     setProducts(updated);
     
     setSaveSuccess(true);
@@ -134,30 +141,33 @@ const AdminProducts: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: string) => {
+  // Fix: Make handleDelete async and use saveProducts plural
+  const handleDelete = async (id: string) => {
     if (window.confirm('هل أنت متأكد من حذف هذا المنتج؟ التغيير سيطبق فوراً على جميع الأجهزة.')) {
       const updated = products.filter(p => p.id !== id);
-      dataService.saveProducts(updated);
+      await dataService.saveProducts(updated);
       setProducts(updated);
       refreshData();
     }
   };
 
-  const handleAddCategory = () => {
+  // Fix: Make handleAddCategory async and use saveCategories plural
+  const handleAddCategory = async () => {
     if (!newCatName) return;
     const newCat: Category = { id: Math.random().toString(36).substr(2, 5), name: newCatName };
     const updated = [...categories, newCat];
-    dataService.saveCategories(updated);
+    await dataService.saveCategories(updated);
     setCategories(updated);
     setNewCatName('');
     refreshData();
   };
 
-  const handleDeleteCategory = (id: string) => {
+  // Fix: Make handleDeleteCategory async and use saveCategories plural
+  const handleDeleteCategory = async (id: string) => {
     if (id === '1') return;
     if (window.confirm('سيتم حذف التصنيف، هل أنت متأكد؟')) {
       const updated = categories.filter(c => c.id !== id);
-      dataService.saveCategories(updated);
+      await dataService.saveCategories(updated);
       setCategories(updated);
       refreshData();
     }

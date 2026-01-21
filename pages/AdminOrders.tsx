@@ -23,11 +23,16 @@ const AdminOrders: React.FC = () => {
   const [cancelReason, setCancelReason] = useState('');
   const [activeCancelId, setActiveCancelId] = useState<string | null>(null);
 
+  // Fix: Await async getOrders call inside useEffect
   useEffect(() => {
-    setOrders(dataService.getOrders());
+    const load = async () => {
+      setOrders(await dataService.getOrders());
+    };
+    load();
   }, []);
 
-  const handleStatusUpdate = (id: string, status: OrderStatus, reason?: string) => {
+  // Fix: Make handleStatusUpdate async and use plural saveOrders method
+  const handleStatusUpdate = async (id: string, status: OrderStatus, reason?: string) => {
     const updated = orders.map(o => {
       if (o.id === id) {
         const order = { ...o, status, cancelReason: reason || o.cancelReason, updatedAt: Date.now() };
@@ -40,14 +45,16 @@ const AdminOrders: React.FC = () => {
       }
       return o;
     });
-    dataService.saveOrders(updated);
+    // Fix: Await plural saveOrders
+    await dataService.saveOrders(updated);
     setOrders(updated);
     setActiveCancelId(null);
     setCancelReason('');
   };
 
-  const sendWhatsApp = (order: Order, type: 'accept' | 'reject', reason?: string) => {
-    const settings = dataService.getSettings();
+  // Fix: Make sendWhatsApp async to properly await settings
+  const sendWhatsApp = async (order: Order, type: 'accept' | 'reject', reason?: string) => {
+    const settings = await dataService.getSettings();
     let message = '';
     
     if (type === 'accept') {
@@ -63,10 +70,11 @@ const AdminOrders: React.FC = () => {
     window.open(`https://wa.me/${order.customer.phoneOrWhatsApp.replace('+', '').replace('-', '')}?text=${encoded}`, '_blank');
   };
 
-  const handleDelete = (id: string) => {
+  // Fix: Make handleDelete async and use plural saveOrders
+  const handleDelete = async (id: string) => {
     if (window.confirm('هل أنت متأكد من حذف هذا الطلب نهائياً؟')) {
       const updated = orders.filter(o => o.id !== id);
-      dataService.saveOrders(updated);
+      await dataService.saveOrders(updated);
       setOrders(updated);
     }
   };

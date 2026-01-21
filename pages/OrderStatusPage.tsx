@@ -10,8 +10,9 @@ const OrderStatusPage: React.FC = () => {
   const [order, setOrder] = useState<Order | null>(null);
 
   useEffect(() => {
-    const fetchOrder = () => {
-      const orders = dataService.getOrders();
+    // Fix: Make fetchOrder async and await dataService.getOrders()
+    const fetchOrder = async () => {
+      const orders = await dataService.getOrders();
       const found = orders.find(o => o.id === id);
       if (found) setOrder(found);
     };
