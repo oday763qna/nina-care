@@ -1,38 +1,37 @@
 import { createClient } from '@supabase/supabase-js';
 
-// دالة لجلب متغيرات البيئة بأمان لتجنب خطأ "undefined"
-const getEnvVar = (key: string): string => {
+// دالة جلب المتغيرات بشكل دفاعي جداً
+const getSafeEnv = (key: string): string => {
   try {
-    // 1. محاولة الجلب من نظام Vite (import.meta.env)
-    const viteEnv = (import.meta as any).env;
-    if (viteEnv && viteEnv[key]) {
-      return viteEnv[key];
+    // محاولة الوصول لـ process.env أولاً (شائع في بيئات التطوير والمنصات السحابية)
+    if (typeof process !== 'undefined' && process.env && (process.env as any)[key]) {
+      return (process.env as any)[key];
     }
-
-    // 2. محاولة الجلب من نظام Node/Global process (process.env)
-    if (typeof process !== 'undefined' && (process as any).env && (process as any).env[key]) {
-      return (process as any).env[key];
+    
+    // محاولة الوصول لـ import.meta.env (الخاص بـ Vite) بشكل آمن
+    const meta = import.meta as any;
+    if (meta && meta.env && meta.env[key]) {
+      return meta.env[key];
     }
-  } catch (error) {
-    console.warn(`فشل الوصول إلى متغير البيئة: ${key}`, error);
+  } catch (e) {
+    // تجاهل الأخطاء في حال كان الكود يعمل في بيئة لا تدعم هذه الخصائص
   }
   return '';
 };
 
-const supabaseUrl = getEnvVar('VITE_SUPABASE_URL');
-const supabaseAnonKey = getEnvVar('VITE_SUPABASE_ANON_KEY');
+const supabaseUrl = getSafeEnv('VITE_SUPABASE_URL');
+const supabaseAnonKey = getSafeEnv('VITE_SUPABASE_ANON_KEY');
 
-// إذا لم تكن المفاتيح موجودة، سنستخدم قيماً فارغة لمنع انهيار التطبيق بالكامل
-// وسنظهر تحذيراً في وحدة التحكم (Console) للمطور
+// في حال عدم وجود مفاتيح، نستخدم قيم افتراضية لمنع انهيار التطبيق (White Screen)
+// ونقوم بطباعة رسالة تنبيه للمطور في الـ Console
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error(
-    "خطأ في الاتصال بقاعدة البيانات: مفاتيح Supabase غير معرفة.\n" +
-    "يرجى التأكد من إضافة VITE_SUPABASE_URL و VITE_SUPABASE_ANON_KEY في إعدادات البيئة (Environment Variables)."
+  console.warn(
+    "Nino Care: لم يتم العثور على مفاتيح Supabase. يرجى التأكد من إضافة VITE_SUPABASE_URL و VITE_SUPABASE_ANON_KEY."
   );
 }
 
-// تصدير العميل مع قيم افتراضية لمنع توقف التطبيق (White Screen)
+// إنشاء العميل - نستخدم رابطاً وهمياً صالحاً كبنية في حال غياب الرابط الحقيقي لتجنب الأخطاء الفورية
 export const supabase = createClient(
-  supabaseUrl || 'https://missing-url.supabase.co', 
-  supabaseAnonKey || 'missing-key'
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseAnonKey || 'placeholder-key'
 );

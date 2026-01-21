@@ -1,28 +1,42 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { CheckCircle, Clock, XCircle, ShoppingBag, ArrowRight } from 'lucide-react';
 import { dataService } from '../services/dataService';
 import { Order, OrderStatus } from '../types';
+import { supabase } from '../services/supabaseClient';
 
 const OrderStatusPage: React.FC = () => {
   const { id } = useParams();
   const [order, setOrder] = useState<Order | null>(null);
 
-  useEffect(() => {
-    // Fix: Make fetchOrder async and await dataService.getOrders()
-    const fetchOrder = async () => {
-      const orders = await dataService.getOrders();
-      const found = orders.find(o => o.id === id);
-      if (found) setOrder(found);
-    };
+  const fetchOrder = async () => {
+    const orders = await dataService.getOrders();
+    const found = orders.find(o => o.id === id);
+    if (found) setOrder(found);
+  };
 
+  useEffect(() => {
     fetchOrder();
-    const interval = setInterval(fetchOrder, 10000); // Poll every 10s
-    return () => clearInterval(interval);
+
+    // استماع لحظي لتحديثات هذا الطلب فقط
+    const channel = supabase
+      .channel(`order-sync-${id}`)
+      .on('postgres_changes', { 
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: 'orders',
+        filter: `id=eq.${id}` 
+      }, (payload) => {
+        setOrder(payload.new as Order);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [id]);
 
-  if (!order) return <div className="text-center py-20">جاري البحث عن الطلب...</div>;
+  if (!order) return <div className="text-center py-20 font-bold text-gray-400">جاري تحميل بيانات الطلب...</div>;
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-20 fade-in text-center">
@@ -66,6 +80,16 @@ const OrderStatusPage: React.FC = () => {
           </>
         )}
 
+        {order.status === OrderStatus.EXECUTED && (
+          <>
+            <div className="w-24 h-24 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-8">
+              <CheckCircle size={48} />
+            </div>
+            <h1 className="text-3xl font-bold mb-4 text-blue-600">تم التوصيل بنجاح</h1>
+            <p className="text-gray-500 text-lg mb-8">شكراً لتسوقك من Nino Care. نتمنى أن تنال منتجاتنا إعجابك!</p>
+          </>
+        )}
+
         <div className="mt-12 pt-12 border-t border-gray-50 text-right">
           <h3 className="font-bold text-lg mb-4">تفاصيل الطلب:</h3>
           <div className="space-y-2 text-gray-600">
@@ -88,10 +112,6 @@ const OrderStatusPage: React.FC = () => {
             <div className="flex justify-between text-lg pt-2 border-t border-dashed border-gray-100">
               <span className="font-bold">الإجمالي الكلي:</span>
               <span className="font-bold pink-primary">₪{order.totals.grandTotal.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>طريقة الدفع:</span>
-              <span>الدفع عند الاستلام</span>
             </div>
           </div>
         </div>
