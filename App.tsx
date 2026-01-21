@@ -16,23 +16,23 @@ import {
   MessageCircle,
   Palette
 } from 'lucide-react';
-import { Product, Category, Order, Ad, Settings, OrderItem, OrderStatus, ThemePreset } from './types.ts';
-import { dataService } from './services/dataService.ts';
-import { THEME_PRESETS } from './constants.ts';
+import { Product, Category, Settings, OrderItem, ThemePreset } from './types';
+import { dataService } from './services/dataService';
+import { THEME_PRESETS } from './constants';
 
-// Pages - Explicit extensions added for build compatibility
-import HomePage from './pages/HomePage.tsx';
-import ProductPage from './pages/ProductPage.tsx';
-import CartPage from './pages/CartPage.tsx';
-import CheckoutPage from './pages/CheckoutPage.tsx';
-import OrderStatusPage from './pages/OrderStatusPage.tsx';
-import AdminLoginPage from './pages/AdminLoginPage.tsx';
-import AdminDashboard from './pages/AdminDashboard.tsx';
-import AdminProducts from './pages/AdminProducts.tsx';
-import AdminOrders from './pages/AdminOrders.tsx';
-import AdminSettings from './pages/AdminSettings.tsx';
-import AdminAds from './pages/AdminAds.tsx';
-import AdminThemes from './pages/AdminThemes.tsx';
+// Pages
+import HomePage from './pages/HomePage';
+import ProductPage from './pages/ProductPage';
+import CartPage from './pages/CartPage';
+import CheckoutPage from './pages/CheckoutPage';
+import OrderStatusPage from './pages/OrderStatusPage';
+import AdminLoginPage from './pages/AdminLoginPage';
+import AdminDashboard from './pages/AdminDashboard';
+import AdminProducts from './pages/AdminProducts';
+import AdminOrders from './pages/AdminOrders';
+import AdminSettings from './pages/AdminSettings';
+import AdminAds from './pages/AdminAds';
+import AdminThemes from './pages/AdminThemes';
 
 interface AppContextType {
   cart: OrderItem[];
