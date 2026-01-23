@@ -13,7 +13,7 @@ const DELIVERY_OPTIONS = [
 ];
 
 const CheckoutPage: React.FC = () => {
-  const { cart, clearCart } = useApp();
+  const { cart, clearCart, addOrderId } = useApp();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +38,6 @@ const CheckoutPage: React.FC = () => {
     return cleanPhone.length >= 9;
   };
 
-  // Fix: Make handleSubmit async to support awaiting dataService.getOrders and saveOrders
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -56,9 +55,10 @@ const CheckoutPage: React.FC = () => {
     setLoading(true);
     
     const selectedArea = DELIVERY_OPTIONS.find(opt => opt.id === form.deliveryAreaId);
+    const orderId = Math.random().toString(36).substr(2, 9).toUpperCase();
 
     const newOrder: Order = {
-      id: Math.random().toString(36).substr(2, 9).toUpperCase(),
+      id: orderId,
       items: [...cart],
       totals: {
         subtotal,
@@ -78,9 +78,12 @@ const CheckoutPage: React.FC = () => {
     };
 
     try {
-      // Fix: Await async getOrders call and use the newly added saveOrders plural method
+      // حفظ في قاعدة البيانات السحابية
       const existingOrders = await dataService.getOrders();
       await dataService.saveOrders([newOrder, ...existingOrders]);
+
+      // حفظ في قاعدة بيانات الهاتف
+      addOrderId(orderId);
 
       setTimeout(() => {
         clearCart();

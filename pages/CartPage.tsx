@@ -1,26 +1,38 @@
 
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingBag, Trash2, ArrowRight, Minus, Plus, History, Clock, CheckCircle2, XCircle, ChevronLeft, AlertCircle, ShoppingCart } from 'lucide-react';
+import { ShoppingBag, Trash2, ArrowRight, Minus, Plus, History, Clock, CheckCircle2, XCircle, ChevronLeft, AlertCircle, ShoppingCart, ClipboardList } from 'lucide-react';
 import { useApp } from '../App';
 import { dataService } from '../services/dataService';
 import { Order, OrderStatus } from '../types';
 
 const CartPage: React.FC = () => {
-  const { cart, updateCartQty, removeFromCart, activeTheme } = useApp();
+  const { cart, updateCartQty, removeFromCart, activeTheme, myOrderIds } = useApp();
   const [pendingOrders, setPendingOrders] = useState<Order[]>([]);
   const [previousOrders, setPreviousOrders] = useState<Order[]>([]);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const navigate = useNavigate();
 
-  // Fix: Await the async getOrders call inside useEffect
   useEffect(() => {
-    const fetchOrders = async () => {
-      const allOrders = await dataService.getOrders();
-      setPendingOrders(allOrders.filter(o => o.status === OrderStatus.PENDING).sort((a, b) => b.createdAt - a.createdAt));
-      setPreviousOrders(allOrders.filter(o => o.status !== OrderStatus.PENDING).sort((a, b) => b.createdAt - a.createdAt));
+    const fetchMyOrders = async () => {
+      if (myOrderIds.length === 0) return;
+      
+      setIsLoadingOrders(true);
+      try {
+        const allOrders = await dataService.getOrders();
+        // تصفية الطلبات لتشمل فقط ما هو موجود في "خزنة الهاتف المحلية"
+        const filtered = allOrders.filter(o => myOrderIds.includes(o.id));
+        
+        setPendingOrders(filtered.filter(o => o.status === OrderStatus.PENDING).sort((a, b) => b.createdAt - a.createdAt));
+        setPreviousOrders(filtered.filter(o => o.status !== OrderStatus.PENDING).sort((a, b) => b.createdAt - a.createdAt));
+      } catch (err) {
+        console.error("Failed to load local history:", err);
+      } finally {
+        setIsLoadingOrders(false);
+      }
     };
-    fetchOrders();
-  }, []);
+    fetchMyOrders();
+  }, [myOrderIds]);
 
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.qty, 0);
 
@@ -90,7 +102,7 @@ const CartPage: React.FC = () => {
             {cart.length > 0 ? (
               <div className="space-y-6">
                 {cart.map(item => (
-                  <div key={item.productId} className="bg-white p-4 md:p-6 rounded-3xl shadow-sm border border-gray-100 flex items-center gap-6">
+                  <div key={item.productId} className="bg-white p-4 md:p-6 rounded-3xl shadow-sm border border-gray-100 flex items-center gap-6 transition-all hover:border-pink-100">
                     <img src={item.image} alt={item.name} className="w-24 h-24 md:w-32 md:h-32 object-cover rounded-2xl border border-gray-50" />
                     <div className="flex-1">
                       <h3 className="text-lg md:text-xl font-bold text-gray-800 mb-2">{item.name}</h3>
@@ -102,7 +114,7 @@ const CartPage: React.FC = () => {
                           <span className="font-bold w-6 text-center">{item.qty}</span>
                           <button onClick={() => updateCartQty(item.productId, item.qty + 1)} className="p-1 hover:opacity-70"><Plus size={18} /></button>
                         </div>
-                        <button onClick={() => removeFromCart(item.productId)} className="text-red-400 hover:text-red-600 p-2"><Trash2 size={20} /></button>
+                        <button onClick={() => removeFromCart(item.productId)} className="text-red-400 hover:text-red-600 p-2 transition-colors"><Trash2 size={20} /></button>
                       </div>
                     </div>
                   </div>
@@ -117,12 +129,12 @@ const CartPage: React.FC = () => {
             )}
           </section>
 
-          {/* Section 2: Pending Orders */}
+          {/* Section 2: Pending Orders (Local Only) */}
           {pendingOrders.length > 0 && (
             <section>
               <div className="flex items-center gap-3 mb-8 pr-4 border-r-4" style={{ borderColor: activeTheme.primaryColor }}>
                 <Clock size={24} className="text-yellow-500" />
-                <h2 className="text-2xl font-bold text-gray-800">طلبات بانتظار التأكيد</h2>
+                <h2 className="text-2xl font-bold text-gray-800">طلباتك قيد المراجعة</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {pendingOrders.map(order => (
@@ -158,12 +170,12 @@ const CartPage: React.FC = () => {
             </section>
           )}
 
-          {/* Section 3: Previous Orders History */}
+          {/* Section 3: Previous Orders History (Local Only) */}
           {previousOrders.length > 0 && (
             <section>
-              <div className="flex items-center gap-3 mb-8 pr-4 border-r-4" style={{ borderColor: activeTheme.primaryColor }}>
-                <History size={24} className="text-gray-400" />
-                <h2 className="text-2xl font-bold text-gray-800">سجل الطلبات السابقة</h2>
+              <div className="flex items-center gap-3 mb-8 pr-4 border-r-4 border-pink-500">
+                <ClipboardList size={24} className="text-gray-400" />
+                <h2 className="text-2xl font-bold text-gray-800">سجل طلبات هاتفك</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {previousOrders.map(order => (
@@ -197,6 +209,12 @@ const CartPage: React.FC = () => {
                 ))}
               </div>
             </section>
+          )}
+          
+          {isLoadingOrders && (
+            <div className="flex justify-center p-10">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-pink-500"></div>
+            </div>
           )}
         </div>
 
@@ -232,7 +250,7 @@ const CartPage: React.FC = () => {
               <div className="mt-8 flex items-start gap-3 bg-blue-50 p-4 rounded-2xl border border-blue-100">
                 <AlertCircle size={20} className="text-blue-500 shrink-0" />
                 <p className="text-[11px] text-blue-700 leading-relaxed">
-                  بمجرد تقديم طلبك، سيظهر في قسم "بانتظار التأكيد" حتى يتم مراجعته من قبل الإدارة.
+                  بمجرد تقديم طلبك، سيتم حفظه في قاعدة بيانات هاتفك لتتمكني من متابعته لاحقاً بكل سهولة.
                 </p>
               </div>
             </div>

@@ -12,26 +12,27 @@ import {
   UserCheck,
   Phone,
   Instagram,
-  Lock
+  Lock,
+  ClipboardList
 } from 'lucide-react';
 import { Product, Category, Settings, OrderItem, ThemePreset, Ad } from './types';
 import { dataService } from './services/dataService';
 import { THEME_PRESETS, DEFAULT_SETTINGS } from './constants';
 import { supabase } from './services/supabaseClient';
 
-// Import page components
+// Fix: Import page components to resolve "Cannot find name" errors
 import HomePage from './pages/HomePage';
 import ProductPage from './pages/ProductPage';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
 import OrderStatusPage from './pages/OrderStatusPage';
+import AdminLoginPage from './pages/AdminLoginPage';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminProducts from './pages/AdminProducts';
 import AdminOrders from './pages/AdminOrders';
 import AdminAds from './pages/AdminAds';
 import AdminThemes from './pages/AdminThemes';
 import AdminSettings from './pages/AdminSettings';
-import AdminLoginPage from './pages/AdminLoginPage';
 
 interface AppContextType {
   cart: OrderItem[];
@@ -43,6 +44,8 @@ interface AppContextType {
   categories: Category[];
   products: Product[];
   ads: Ad[];
+  myOrderIds: string[];
+  addOrderId: (id: string) => void;
   refreshData: () => Promise<void>;
   activeTheme: ThemePreset;
   isLoading: boolean;
@@ -57,6 +60,7 @@ export const useApp = () => {
 
 const App: React.FC = () => {
   const [cart, setCart] = useState<OrderItem[]>([]);
+  const [myOrderIds, setMyOrderIds] = useState<string[]>([]);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -86,15 +90,19 @@ const App: React.FC = () => {
 
   useEffect(() => {
     refreshData();
-    const savedCart = localStorage.getItem('nina_cart_v5');
+    
+    // تحميل قاعدة البيانات المحلية للهاتف
+    const savedCart = localStorage.getItem('nina_cart_v6');
     if (savedCart) setCart(JSON.parse(savedCart));
 
+    const savedOrders = localStorage.getItem('nina_my_orders_v6');
+    if (savedOrders) setMyOrderIds(JSON.parse(savedOrders));
+
     const channel = supabase
-      .channel('nina-sync-v5')
+      .channel('nina-sync-v6')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => refreshData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'ads' }, () => refreshData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, () => refreshData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => refreshData())
       .subscribe();
 
     return () => {
@@ -102,9 +110,14 @@ const App: React.FC = () => {
     };
   }, []);
 
+  // حفظ التغييرات في قاعدة بيانات الهاتف تلقائياً
   useEffect(() => {
-    localStorage.setItem('nina_cart_v5', JSON.stringify(cart));
+    localStorage.setItem('nina_cart_v6', JSON.stringify(cart));
   }, [cart]);
+
+  useEffect(() => {
+    localStorage.setItem('nina_my_orders_v6', JSON.stringify(myOrderIds));
+  }, [myOrderIds]);
 
   useEffect(() => {
     document.documentElement.style.setProperty('--primary-color', activeTheme.primaryColor);
@@ -118,10 +131,11 @@ const App: React.FC = () => {
       if (existing) {
         return prev.map(item => item.productId === product.id ? { ...item, qty: item.qty + qty } : item);
       }
+      const price = product.discount.active ? product.price * (1 - product.discount.percent / 100) : product.price;
       return [...prev, {
         productId: product.id,
         name: product.name,
-        price: product.discount.active ? product.price * (1 - product.discount.percent / 100) : product.price,
+        price,
         qty,
         image: product.images[0]
       }];
@@ -134,12 +148,19 @@ const App: React.FC = () => {
     setCart(prev => prev.map(item => item.productId === productId ? { ...item, qty } : item));
   };
   const clearCart = () => setCart([]);
+  
+  const addOrderId = (id: string) => {
+    setMyOrderIds(prev => {
+      if (prev.includes(id)) return prev;
+      return [id, ...prev];
+    });
+  };
 
   if (isLoading) return (
     <div className="min-h-screen flex items-center justify-center bg-white">
       <div className="flex flex-col items-center gap-4">
         <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-pink-500"></div>
-        <p className="text-pink-500 font-bold animate-pulse text-xs tracking-widest">NINO CARE SYNCING...</p>
+        <p className="text-pink-500 font-bold animate-pulse text-xs tracking-widest uppercase">Initializing Phone Database...</p>
       </div>
     </div>
   );
@@ -147,10 +168,10 @@ const App: React.FC = () => {
   return (
     <AppContext.Provider value={{ 
       cart, addToCart, removeFromCart, updateCartQty, clearCart, 
-      settings, categories, products, ads, refreshData, activeTheme, isLoading
+      settings, categories, products, ads, myOrderIds, addOrderId, refreshData, activeTheme, isLoading
     }}>
       <HashRouter>
-        <div className="min-h-screen flex flex-col font-cairo overflow-x-hidden selection:bg-pink-100 selection:text-pink-600">
+        <div className="min-h-screen flex flex-col font-cairo overflow-x-hidden">
           <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-pink-50">
             <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
               <Link to="/" className="flex items-center gap-3 active:scale-95 transition-transform">
@@ -178,11 +199,10 @@ const App: React.FC = () => {
             </Routes>
           </main>
 
-          {/* النقطة السرية في أقصى الزاوية اليمنى السفلية */}
           <Link 
             to="/admin/login" 
             className="fixed bottom-0 right-0 w-[6px] h-[6px] bg-pink-500/10 hover:bg-pink-600 hover:w-10 hover:h-10 transition-all duration-1000 z-[9999] flex items-center justify-center group opacity-10 hover:opacity-100 rounded-tl-full border-t border-r border-transparent hover:border-pink-200"
-            title="إدارة النظام"
+            title="Admin Login"
           >
             <Lock size={14} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
           </Link>
@@ -200,7 +220,7 @@ const App: React.FC = () => {
                   <a href={settings.instagramUrl} target="_blank" className="p-4 bg-pink-50 text-pink-600 rounded-2xl hover:bg-pink-600 hover:text-white transition-all shadow-sm"><Instagram size={20} /></a>
                 </div>
               </div>
-              <p className="text-[9px] text-gray-300 font-bold mt-4 uppercase tracking-[0.2em] col-span-full border-t border-gray-50 pt-8">© 2026 Nina Care. Securely Powered by Supabase.</p>
+              <p className="text-[9px] text-gray-300 font-bold mt-4 uppercase tracking-[0.2em] col-span-full border-t border-gray-50 pt-8">© 2026 Nina Care. Data Secured Locally & on Cloud.</p>
             </div>
           </footer>
         </div>
