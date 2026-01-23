@@ -86,11 +86,11 @@ const App: React.FC = () => {
 
   useEffect(() => {
     refreshData();
-    const savedCart = localStorage.getItem('nina_cart_v4');
+    const savedCart = localStorage.getItem('nina_cart_v5');
     if (savedCart) setCart(JSON.parse(savedCart));
 
     const channel = supabase
-      .channel('nina-sync-v4')
+      .channel('nina-sync-v5')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => refreshData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'ads' }, () => refreshData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, () => refreshData())
@@ -103,7 +103,7 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('nina_cart_v4', JSON.stringify(cart));
+    localStorage.setItem('nina_cart_v5', JSON.stringify(cart));
   }, [cart]);
 
   useEffect(() => {
@@ -181,17 +181,17 @@ const App: React.FC = () => {
           {/* النقطة السرية في أقصى الزاوية اليمنى السفلية */}
           <Link 
             to="/admin/login" 
-            className="fixed bottom-0 right-0 w-[5px] h-[5px] bg-pink-500/5 hover:bg-pink-600 hover:w-8 hover:h-8 transition-all duration-1000 z-[9999] flex items-center justify-center group opacity-10 hover:opacity-100 rounded-tl-full"
-            title="إدارة"
+            className="fixed bottom-0 right-0 w-[6px] h-[6px] bg-pink-500/10 hover:bg-pink-600 hover:w-10 hover:h-10 transition-all duration-1000 z-[9999] flex items-center justify-center group opacity-10 hover:opacity-100 rounded-tl-full border-t border-r border-transparent hover:border-pink-200"
+            title="إدارة النظام"
           >
-            <Lock size={12} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+            <Lock size={14} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
           </Link>
 
           <footer className="bg-white border-t border-pink-50 py-16 px-4 mt-20">
             <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 text-center md:text-right">
               <div>
-                <h3 className="text-xl font-black mb-4 pink-primary uppercase tracking-tighter">Nina Care</h3>
-                <p className="text-gray-400 text-sm leading-relaxed max-w-xs mx-auto md:mx-0 font-bold">عالم الجمال والعناية المتكامل بين يديك.</p>
+                <h3 className="text-xl font-black mb-4 pink-primary uppercase">Nina Care</h3>
+                <p className="text-gray-400 text-sm font-bold">عالم الجمال والعناية المتكامل بين يديك.</p>
               </div>
               <div className="space-y-4">
                 <h3 className="text-lg font-bold text-gray-700">تواصل اجتماعي</h3>
@@ -219,12 +219,12 @@ const AdminLayout: React.FC = () => {
       <aside className="w-full lg:w-72 bg-white border-l shadow-xl z-40 lg:sticky lg:top-20 lg:h-[calc(100vh-80px)] overflow-y-auto">
         <div className="p-8">
           <div className="flex items-center gap-4 mb-12 pb-6 border-b border-pink-50">
-            <div className="p-3 pink-primary-bg text-white rounded-2xl shadow-lg shadow-pink-100">
+            <div className="p-3 pink-primary-bg text-white rounded-2xl shadow-lg">
               <UserCheck size={28} />
             </div>
             <div>
               <h2 className="text-xl font-black text-gray-800">النظام</h2>
-              <p className="text-[10px] text-green-500 font-bold tracking-widest uppercase">Cloud Sync</p>
+              <p className="text-[10px] text-green-500 font-bold tracking-widest uppercase">Live Sync</p>
             </div>
           </div>
           <nav className="space-y-2">

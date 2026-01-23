@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Plus, Trash2, Eye, EyeOff, Camera, X, Check, ImageIcon, Loader2 } from 'lucide-react';
 import { dataService } from '../services/dataService';
 import { useApp } from '../App';
@@ -17,8 +17,10 @@ const AdminAds: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 2 * 1024 * 1024) {
-      alert("حجم الصورة كبير جداً (الحد الأقصى 2 ميجا)");
+    // تحديد الحد الأقصى بـ 1.5 ميجا لضمان سرعة البناء والتصفح
+    if (file.size > 1.5 * 1024 * 1024) {
+      alert("حجم الصورة كبير جداً. يرجى اختيار صورة أصغر من 1.5 ميجا لضمان سرعة المتجر.");
+      if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
 
@@ -47,7 +49,7 @@ const AdminAds: React.FC = () => {
       setSuccessMsg(true);
       setTimeout(() => setSuccessMsg(false), 3000);
     } catch (err) {
-      alert("حدث خطأ أثناء الحفظ في Supabase.");
+      alert("حدث خطأ في المزامنة السحابية.");
     } finally {
       setIsUploading(false);
     }
@@ -64,13 +66,13 @@ const AdminAds: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('هل أنت متأكد من حذف هذا الإعلان نهائياً؟')) {
+    if (window.confirm('هل تريد حذف هذا البنر نهائياً؟')) {
       setDeletingId(id);
       try {
         await dataService.deleteAd(id);
         await refreshData();
       } catch (err) {
-        alert("فشل في حذف الإعلان من القاعدة.");
+        alert("فشل الحذف. يرجى المحاولة لاحقاً.");
       } finally {
         setDeletingId(null);
       }
@@ -86,19 +88,19 @@ const AdminAds: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white p-8 rounded-[40px] shadow-sm border border-pink-50 overflow-hidden relative group">
+      <div className="bg-white p-8 rounded-[40px] shadow-sm border border-pink-50 overflow-hidden relative">
         <div className="flex flex-col md:flex-row gap-10 items-center">
           <div className="flex-1 space-y-6 text-right">
             <h3 className="text-xl font-bold flex items-center gap-2 justify-end">
               <Plus size={24} className="text-pink-500" /> إضافة إعلان جديد
             </h3>
             <p className="text-gray-400 text-sm leading-relaxed">
-              ارفعي صوراً عالية الجودة لضمان مظهر احترافي للمتجر.
+              ارفعي صوراً عرضية بمقاسات (1200x600) للحصول على أفضل مظهر.
             </p>
             <button 
               onClick={handleAdd}
               disabled={!previewImage || isUploading}
-              className={`w-full pink-primary-bg text-white py-4 rounded-2xl font-bold transition-all shadow-lg flex items-center justify-center gap-3 ${isUploading || !previewImage ? 'opacity-50' : 'hover:shadow-pink-200 active:scale-95'}`}
+              className={`w-full pink-primary-bg text-white py-4 rounded-2xl font-bold transition-all shadow-lg flex items-center justify-center gap-3 ${isUploading || !previewImage ? 'opacity-50' : 'hover:scale-[1.01] active:scale-95'}`}
             >
               {isUploading ? <Loader2 className="animate-spin" /> : <ImageIcon size={20} />}
               {isUploading ? 'جاري الحفظ...' : 'حفظ ونشر الآن'}
@@ -112,16 +114,11 @@ const AdminAds: React.FC = () => {
               className={`aspect-[16/8] rounded-[32px] border-4 border-dashed cursor-pointer transition-all flex flex-col items-center justify-center overflow-hidden relative ${previewImage ? 'border-pink-200' : 'border-gray-100 bg-gray-50 hover:bg-pink-50/30'}`}
             >
               {previewImage ? (
-                <>
-                  <img src={previewImage} alt="Preview" className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <span className="bg-white/90 backdrop-blur px-4 py-2 rounded-xl text-xs font-bold">تغيير الصورة</span>
-                  </div>
-                </>
+                <img src={previewImage} alt="Preview" className="w-full h-full object-cover" />
               ) : (
                 <div className="text-center text-gray-400">
                   <Camera size={48} className="mx-auto mb-2 opacity-10" />
-                  <span className="font-bold text-xs">اضغطي هنا لاختيار صورة</span>
+                  <span className="font-bold text-xs">اضغطي لرفع البنر</span>
                 </div>
               )}
             </div>
@@ -136,7 +133,7 @@ const AdminAds: React.FC = () => {
               <img src={ad.imageUrl} alt="" className="w-full h-full object-cover" />
               {!ad.active && (
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                  <span className="bg-white px-6 py-2 rounded-full font-bold text-xs tracking-widest">غير نشط</span>
+                  <span className="bg-white px-6 py-2 rounded-full font-bold text-xs tracking-widest">مخفي حالياً</span>
                 </div>
               )}
             </div>
@@ -145,29 +142,21 @@ const AdminAds: React.FC = () => {
                 <button 
                   onClick={() => handleToggle(ad)} 
                   className={`p-3 rounded-2xl transition-all ${ad.active ? 'bg-pink-50 text-pink-600' : 'bg-gray-100 text-gray-400'}`}
-                  title={ad.active ? 'إخفاء' : 'إظهار'}
                 >
                   {ad.active ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
                 <button 
                   onClick={() => handleDelete(ad.id)} 
                   disabled={deletingId === ad.id}
-                  className="p-3 bg-red-50 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all disabled:opacity-50"
-                  title="حذف نهائي"
+                  className="p-3 bg-red-50 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all"
                 >
                   {deletingId === ad.id ? <Loader2 className="animate-spin" size={20} /> : <Trash2 size={20} />}
                 </button>
               </div>
-              <span className="text-[9px] font-mono text-gray-300 uppercase tracking-tighter">ID: {ad.id}</span>
+              <span className="text-[10px] font-mono text-gray-300 uppercase">BANNER: {ad.id.slice(-5)}</span>
             </div>
           </div>
         ))}
-        {ads.length === 0 && (
-          <div className="col-span-full py-20 text-center border-2 border-dashed border-gray-100 rounded-[40px]">
-            <ImageIcon size={48} className="mx-auto text-gray-100 mb-4" />
-            <p className="text-gray-300 font-bold">لا توجد إعلانات حالياً.</p>
-          </div>
-        )}
       </div>
     </div>
   );
