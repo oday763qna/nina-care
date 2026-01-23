@@ -23,18 +23,29 @@ export const dataService = {
     if (error) throw error;
   },
 
-  // التصنيفات
+  // التصنيفات (الفئات) - إدارة مستقلة
   getCategories: async (): Promise<Category[]> => {
     try {
-      const { data, error } = await supabase.from('categories').select('*');
+      const { data, error } = await supabase.from('categories').select('*').order('id', { ascending: true });
       if (error) throw error;
       return data || [];
     } catch (e) {
+      console.error("Error fetching categories:", e);
       return [];
     }
   },
   saveCategories: async (categories: Category[]) => {
+    // نقوم بحذف الفئات القديمة أو تحديثها - هنا نستخدم نظام التبديل الكامل لتبسيط الواجهة للادمن
+    // ملاحظة: في Supabase يفضل استخدام upsert لكل فئة على حدة
     const { error } = await supabase.from('categories').upsert(categories);
+    if (error) throw error;
+  },
+  deleteCategory: async (id: string) => {
+    const { error } = await supabase.from('categories').delete().eq('id', id);
+    if (error) throw error;
+  },
+  addCategory: async (category: Category) => {
+    const { error } = await supabase.from('categories').insert(category);
     if (error) throw error;
   },
 
@@ -72,14 +83,13 @@ export const dataService = {
     if (error) throw error;
   },
 
-  // الإعلانات (البنرات)
+  // الإعلانات
   getAds: async (): Promise<Ad[]> => {
     try {
       const { data, error } = await supabase.from('ads').select('*').order('id', { ascending: false });
       if (error) throw error;
       return data || [];
     } catch (e) {
-      console.error("Error fetching ads:", e);
       return [];
     }
   },
