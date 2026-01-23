@@ -6,16 +6,10 @@ export const dataService = {
   // المنتجات
   getProducts: async (): Promise<Product[]> => {
     const { data, error } = await supabase.from('products').select('*').order('createdAt', { ascending: false });
-    if (error) throw error;
-    return data || [];
+    return error ? [] : data || [];
   },
   saveProduct: async (product: Product) => {
     const { error } = await supabase.from('products').upsert(product);
-    if (error) throw error;
-  },
-  // Added plural save method to fix error in AdminProducts.tsx
-  saveProducts: async (products: Product[]) => {
-    const { error } = await supabase.from('products').upsert(products);
     if (error) throw error;
   },
   deleteProduct: async (id: string) => {
@@ -26,14 +20,8 @@ export const dataService = {
   // التصنيفات
   getCategories: async (): Promise<Category[]> => {
     const { data, error } = await supabase.from('categories').select('*');
-    if (error) throw error;
-    return data || [];
+    return error ? [] : data || [];
   },
-  saveCategory: async (category: Category) => {
-    const { error } = await supabase.from('categories').insert(category);
-    if (error) throw error;
-  },
-  // Added plural save method to fix error in AdminProducts.tsx
   saveCategories: async (categories: Category[]) => {
     const { error } = await supabase.from('categories').upsert(categories);
     if (error) throw error;
@@ -42,14 +30,8 @@ export const dataService = {
   // الطلبات
   getOrders: async (): Promise<Order[]> => {
     const { data, error } = await supabase.from('orders').select('*').order('createdAt', { ascending: false });
-    if (error) throw error;
-    return data || [];
+    return error ? [] : data || [];
   },
-  createOrder: async (order: Order) => {
-    const { error } = await supabase.from('orders').insert(order);
-    if (error) throw error;
-  },
-  // Added plural save method to fix error in CheckoutPage.tsx and AdminOrders.tsx
   saveOrders: async (orders: Order[]) => {
     const { error } = await supabase.from('orders').upsert(orders);
     if (error) throw error;
@@ -59,24 +41,27 @@ export const dataService = {
     if (error) throw error;
   },
 
-  // الإعدادات والإعلانات
-  getSettings: async (): Promise<Settings> => {
-    const { data, error } = await supabase.from('settings').select('*').single();
-    if (error) throw error;
-    return data;
+  // الإعدادات
+  getSettings: async (): Promise<Settings | null> => {
+    const { data, error } = await supabase.from('settings').select('*').eq('id', 'global').maybeSingle();
+    return error ? null : data;
   },
   saveSettings: async (settings: Settings) => {
-    const { error } = await supabase.from('settings').update(settings).eq('id', 'global');
+    const { error } = await supabase.from('settings').upsert({ id: 'global', ...settings });
     if (error) throw error;
   },
+
+  // الإعلانات (البنرات)
   getAds: async (): Promise<Ad[]> => {
-    const { data, error } = await supabase.from('ads').select('*');
-    if (error) throw error;
-    return data || [];
+    const { data, error } = await supabase.from('ads').select('*').order('id', { ascending: false });
+    return error ? [] : data || [];
   },
-  // Added plural save method to fix error in AdminAds.tsx
   saveAds: async (ads: Ad[]) => {
     const { error } = await supabase.from('ads').upsert(ads);
+    if (error) throw error;
+  },
+  deleteAd: async (id: string) => {
+    const { error } = await supabase.from('ads').delete().eq('id', id);
     if (error) throw error;
   }
 };

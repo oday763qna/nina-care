@@ -7,7 +7,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     key: 'default', 
     primaryColor: '#db2777', 
     secondaryColor: '#fff5f7', 
-    bannerText: 'شاهد أفضل المنتجات',
+    bannerText: 'منتجات العناية والجمال المختارة',
     accentIcon: 'Heart'
   },
   { 
@@ -16,35 +16,8 @@ export const THEME_PRESETS: ThemePreset[] = [
     key: 'eid_fitr', 
     primaryColor: '#059669', 
     secondaryColor: '#ecfdf5', 
-    bannerText: 'مبارك عليكم العيد - عروض عيد الفطر السعيد',
+    bannerText: 'مبارك عليكم العيد - عروض حصرية',
     accentIcon: 'Moon'
-  },
-  { 
-    id: 'eid_adha', 
-    name: 'عيد الأضحى', 
-    key: 'eid_adha', 
-    primaryColor: '#065f46', 
-    secondaryColor: '#f0fdf4', 
-    bannerText: 'أضحى مبارك - خصومات عيد الأضحى الكبرى',
-    accentIcon: 'Star'
-  },
-  { 
-    id: 'christmas', 
-    name: 'عيد الميلاد', 
-    key: 'christmas', 
-    primaryColor: '#dc2626', 
-    secondaryColor: '#fef2f2', 
-    bannerText: 'ميلاد مجيد - عروض الموسم الشتوي',
-    accentIcon: 'Snowflake'
-  },
-  { 
-    id: 'new_year', 
-    name: 'رأس السنة', 
-    key: 'new_year', 
-    primaryColor: '#b45309', 
-    secondaryColor: '#fffbeb', 
-    bannerText: 'سنة سعيدة 2026 - عروض بداية العام',
-    accentIcon: 'Sparkles'
   },
   { 
     id: 'black_friday', 
@@ -52,16 +25,14 @@ export const THEME_PRESETS: ThemePreset[] = [
     key: 'black_friday', 
     primaryColor: '#111827', 
     secondaryColor: '#f9fafb', 
-    bannerText: 'الجمعة البيضاء - تخفيضات هائلة لفترة محدودة',
+    bannerText: 'تخفيضات هائلة - الجمعة البيضاء',
     accentIcon: 'Flame'
   }
 ];
 
 export const INITIAL_ADS = [
   'https://i.imgur.com/9eBXADa.jpeg',
-  'https://i.imgur.com/tGM1wB5.jpeg',
-  'https://i.imgur.com/5tKCMdj.jpeg',
-  'https://i.imgur.com/PMxat6q.jpeg'
+  'https://i.imgur.com/tGM1wB5.jpeg'
 ];
 
 export const DEFAULT_SETTINGS = {
@@ -69,6 +40,6 @@ export const DEFAULT_SETTINGS = {
   instagramUrl: 'https://www.instagram.com/nina_care33?igsh=MXBkejVrN3o0NGxtcA==',
   adminPassword: '200820102026',
   productMgmtPassword: '2008',
-  deliveryTemplate: 'مرحباً، تم قبول طلبك رقم {ORDER_ID} من Nino Care. الإجمالي الكلي شامل التوصيل: {TOTAL} شيكل. سيصلك خلال يوم إلى يومين. شكراً لك!',
+  deliveryTemplate: 'مرحباً، تم قبول طلبك رقم {ORDER_ID} من نينو كير. الإجمالي شامل التوصيل: {TOTAL} شيكل. سيصلك قريباً. شكراً لك!',
   activeThemeId: 'default'
 };

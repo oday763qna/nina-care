@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Edit, Trash2, Tag, X, Image as ImageIcon, Upload, Camera, Check, Grid } from 'lucide-react';
+import { Plus, Edit, Trash2, Tag, X, Image as ImageIcon, Upload, Camera, Check, Grid, Lock } from 'lucide-react';
 import { dataService } from '../services/dataService';
 import { Product, Category, Discount } from '../types';
 import { useApp } from '../App';
@@ -14,6 +13,7 @@ const AdminProducts: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [authError, setAuthError] = useState(false);
   
   const fileInputRef1 = useRef<HTMLInputElement>(null);
   const fileInputRef2 = useRef<HTMLInputElement>(null);
@@ -31,7 +31,6 @@ const AdminProducts: React.FC = () => {
 
   const [newCatName, setNewCatName] = useState('');
 
-  // Fix: Await async getProducts and getCategories calls inside useEffect
   useEffect(() => {
     const load = async () => {
       setProducts(await dataService.getProducts());
@@ -40,14 +39,16 @@ const AdminProducts: React.FC = () => {
     load();
   }, []);
 
-  // Fix: Make handleAuth async to await settings from dataService
-  const handleAuth = async (e: React.FormEvent) => {
+  const handleAuth = (e: React.FormEvent) => {
     e.preventDefault();
-    const settings = await dataService.getSettings();
-    if (password === settings.productMgmtPassword) {
+    // تقبل كلمة المرور "2008" أو "Pass it 2008"
+    if (password === '2008' || password.toLowerCase() === 'pass it 2008') {
       setIsAuthorized(true);
+      setAuthError(false);
     } else {
-      alert('كلمة مرور خاطئة لإدارة المنتجات');
+      setAuthError(true);
+      setPassword('');
+      setTimeout(() => setAuthError(false), 2000);
     }
   };
 
@@ -71,7 +72,6 @@ const AdminProducts: React.FC = () => {
     setForm({ ...form, images: newImages });
   };
 
-  // Fix: Make handleSaveProduct async and use the newly added saveProducts plural method
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -94,25 +94,21 @@ const AdminProducts: React.FC = () => {
       createdAt: editingProduct?.createdAt || Date.now()
     };
 
-    let updated;
-    if (editingProduct) {
-      updated = products.map(p => p.id === editingProduct.id ? newProduct : p);
-    } else {
-      updated = [newProduct, ...products];
+    try {
+      await dataService.saveProduct(newProduct);
+      setProducts(await dataService.getProducts());
+      
+      setSaveSuccess(true);
+      setTimeout(() => {
+        setIsModalOpen(false);
+        setEditingProduct(null);
+        resetForm();
+        refreshData();
+        setSaveSuccess(false);
+      }, 800);
+    } catch (err) {
+      alert("حدث خطأ أثناء حفظ المنتج في Supabase.");
     }
-
-    // Fix: Await saveProducts
-    await dataService.saveProducts(updated);
-    setProducts(updated);
-    
-    setSaveSuccess(true);
-    setTimeout(() => {
-      setIsModalOpen(false);
-      setEditingProduct(null);
-      resetForm();
-      refreshData();
-      setSaveSuccess(false);
-    }, 800);
   };
 
   const resetForm = () => {
@@ -141,17 +137,14 @@ const AdminProducts: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  // Fix: Make handleDelete async and use saveProducts plural
   const handleDelete = async (id: string) => {
-    if (window.confirm('هل أنت متأكد من حذف هذا المنتج؟ التغيير سيطبق فوراً على جميع الأجهزة.')) {
-      const updated = products.filter(p => p.id !== id);
-      await dataService.saveProducts(updated);
-      setProducts(updated);
+    if (window.confirm('هل أنت متأكد من حذف هذا المنتج؟')) {
+      await dataService.deleteProduct(id);
+      setProducts(await dataService.getProducts());
       refreshData();
     }
   };
 
-  // Fix: Make handleAddCategory async and use saveCategories plural
   const handleAddCategory = async () => {
     if (!newCatName) return;
     const newCat: Category = { id: Math.random().toString(36).substr(2, 5), name: newCatName };
@@ -162,7 +155,6 @@ const AdminProducts: React.FC = () => {
     refreshData();
   };
 
-  // Fix: Make handleDeleteCategory async and use saveCategories plural
   const handleDeleteCategory = async (id: string) => {
     if (id === '1') return;
     if (window.confirm('سيتم حذف التصنيف، هل أنت متأكد؟')) {
@@ -176,32 +168,32 @@ const AdminProducts: React.FC = () => {
   if (!isAuthorized) {
     return (
       <div className="max-w-md mx-auto mt-20 p-8 bg-white rounded-[40px] shadow-2xl border border-gray-100 text-center fade-in">
-        <div className="w-20 h-20 bg-pink-100 text-pink-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
-          <Tag size={40} />
+        <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner transition-all ${authError ? 'bg-red-100 text-red-600 animate-shake' : 'bg-pink-100 text-pink-600'}`}>
+          <Lock size={40} />
         </div>
-        <h2 className="text-2xl font-bold mb-2">إدارة مركزية آمنة</h2>
-        <p className="text-gray-400 mb-8 text-sm">هذه المنطقة مخصصة لإدارة المخزون والتعديلات الرسمية فقط.</p>
+        <h2 className="text-2xl font-bold mb-2">منطقة المنتجات المحمية</h2>
+        <p className="text-gray-400 mb-8 text-sm font-bold">يرجى إدخال الرمز السري للوصول إلى إدارة المخزون.</p>
         <form onSubmit={handleAuth} className="space-y-4">
           <input 
             type="password" 
-            placeholder="كلمة مرور الإدارة"
-            className="w-full p-5 bg-gray-50 rounded-2xl outline-none focus:ring-4 ring-pink-100 text-center text-xl font-mono transition-all"
+            placeholder="أدخل الرمز السري"
+            className={`w-full p-5 rounded-2xl outline-none focus:ring-4 text-center text-xl font-mono transition-all border ${authError ? 'border-red-300 ring-red-50 bg-red-50' : 'bg-gray-50 border-gray-100 ring-pink-100'}`}
             value={password}
             onChange={e => setPassword(e.target.value)}
             autoFocus
           />
-          <button className="w-full pink-primary-bg text-white py-5 rounded-2xl font-bold text-lg shadow-xl active:scale-95 transition-all">تأكيد الدخول</button>
+          <button className="w-full pink-primary-bg text-white py-5 rounded-2xl font-bold text-lg shadow-xl active:scale-95 transition-all">فتح القسم</button>
         </form>
       </div>
     );
   }
 
   return (
-    <div className="fade-in space-y-8">
+    <div className="fade-in space-y-8 pb-20">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold mb-1">إدارة المنتجات والتصنيفات</h1>
-          <p className="text-gray-500 font-bold text-sm">التعديلات المجرية هنا تظهر فوراً لجميع العملاء.</p>
+          <p className="text-gray-500 font-bold text-sm">إدارة مخزون متجر نينو كير بشكل مركزي.</p>
         </div>
         <button 
           onClick={() => { resetForm(); setEditingProduct(null); setIsModalOpen(true); }}
@@ -287,7 +279,7 @@ const AdminProducts: React.FC = () => {
                   ))}
                   {products.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="p-20 text-center text-gray-300 font-bold">المخزن فارغ حالياً. ابدأ بإضافة منتجاتك الرسمية.</td>
+                      <td colSpan={5} className="p-20 text-center text-gray-300 font-bold">المخزن فارغ حالياً.</td>
                     </tr>
                   )}
                 </tbody>
@@ -307,26 +299,26 @@ const AdminProducts: React.FC = () => {
                   <Check size={40} />
                 </div>
                 <h3 className="text-2xl font-bold text-gray-800">تم الحفظ بنجاح</h3>
-                <p className="text-gray-500">جاري تحديث البيانات لجميع العملاء...</p>
+                <p className="text-gray-500">جاري مزامنة البيانات مع Supabase...</p>
               </div>
             )}
             
             <button onClick={() => setIsModalOpen(false)} className="absolute top-8 left-8 p-3 hover:bg-gray-100 rounded-full transition-colors"><X size={24} /></button>
-            <h2 className="text-3xl font-bold mb-10 text-gray-800">{editingProduct ? 'تحديث بيانات المنتج' : 'إضافة منتج جديد للمتجر'}</h2>
+            <h2 className="text-3xl font-bold mb-10 text-gray-800">{editingProduct ? 'تحديث بيانات المنتج' : 'إضافة منتج جديد'}</h2>
             
             <form onSubmit={handleSaveProduct} className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-4 md:col-span-2">
-                <label className="block text-gray-700 font-bold px-1">اسم المنتج</label>
+                <label className="block text-gray-700 font-bold px-1 text-sm uppercase tracking-wider">اسم المنتج</label>
                 <input 
                   required
                   type="text" 
-                  className="w-full p-5 bg-gray-50 border border-gray-100 rounded-[24px] outline-none focus:border-pink-300 focus:bg-white transition-all font-bold text-lg"
+                  className="w-full p-5 bg-gray-50 border border-gray-100 rounded-[24px] outline-none focus:border-pink-300 focus:bg-white transition-all font-bold"
                   value={form.name}
                   onChange={e => setForm({...form, name: e.target.value})}
                 />
               </div>
               <div className="space-y-4 md:col-span-2">
-                <label className="block text-gray-700 font-bold px-1">وصف المنتج (التفاصيل والمميزات)</label>
+                <label className="block text-gray-700 font-bold px-1 text-sm uppercase tracking-wider">الوصف</label>
                 <textarea 
                   required
                   className="w-full p-5 bg-gray-50 border border-gray-100 rounded-[24px] outline-none h-32 focus:border-pink-300 focus:bg-white transition-all resize-none"
@@ -336,7 +328,7 @@ const AdminProducts: React.FC = () => {
               </div>
               
               <div className="space-y-4">
-                <label className="block text-gray-700 font-bold px-1">السعر الرسمي (₪)</label>
+                <label className="block text-gray-700 font-bold px-1 text-sm uppercase tracking-wider">السعر (₪)</label>
                 <input 
                   required
                   type="number" 
@@ -347,7 +339,7 @@ const AdminProducts: React.FC = () => {
                 />
               </div>
               <div className="space-y-4">
-                <label className="block text-gray-700 font-bold px-1">التصنيف الإداري</label>
+                <label className="block text-gray-700 font-bold px-1 text-sm uppercase tracking-wider">التصنيف</label>
                 <select 
                   className="w-full p-5 bg-gray-50 border border-gray-100 rounded-[24px] outline-none focus:border-pink-300 focus:bg-white transition-all font-bold"
                   value={form.categoryId}
@@ -357,9 +349,8 @@ const AdminProducts: React.FC = () => {
                 </select>
               </div>
 
-              {/* Image Upload Area */}
               <div className="md:col-span-2 space-y-4">
-                <label className="block text-gray-700 font-bold px-1">صور المنتج الاحترافية</label>
+                <label className="block text-gray-700 font-bold px-1 text-sm uppercase tracking-wider">صور المنتج</label>
                 <div className="grid grid-cols-2 gap-8">
                   {[0, 1].map(index => (
                     <div key={index} className="relative group">
@@ -372,7 +363,7 @@ const AdminProducts: React.FC = () => {
                       />
                       <div 
                         onClick={() => (index === 0 ? fileInputRef1 : fileInputRef2).current?.click()}
-                        className={`aspect-square rounded-[32px] border-4 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden ${form.images[index] ? 'border-pink-500 bg-pink-50' : 'border-gray-100 bg-gray-50 hover:border-pink-300 hover:bg-pink-50/50'}`}
+                        className={`aspect-square rounded-[32px] border-4 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden ${form.images[index] ? 'border-pink-50' : 'border-gray-100 bg-gray-50 hover:border-pink-300 hover:bg-pink-50/50'}`}
                       >
                         {form.images[index] ? (
                           <div className="relative w-full h-full p-3">
@@ -386,12 +377,9 @@ const AdminProducts: React.FC = () => {
                             </button>
                           </div>
                         ) : (
-                          <div className="text-center p-6">
-                            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-3 text-pink-400 shadow-md">
-                              <Camera size={32} />
-                            </div>
-                            <span className="text-sm font-bold text-gray-500">{index === 0 ? 'الصورة الرئيسية' : 'صورة ثانية'}</span>
-                            <p className="text-xs text-gray-300 mt-2">انقر لاختيار صورة بجودة عالية</p>
+                          <div className="text-center p-6 text-gray-400">
+                            <Camera size={32} className="mx-auto mb-2 opacity-30" />
+                            <span className="text-[10px] font-bold uppercase">{index === 0 ? 'الرئيسية' : 'إضافية'}</span>
                           </div>
                         )}
                       </div>
@@ -400,30 +388,30 @@ const AdminProducts: React.FC = () => {
                 </div>
               </div>
 
-              <div className="space-y-4 bg-pink-50 p-8 rounded-[32px] border border-pink-100 md:col-span-2">
+              <div className="space-y-4 bg-pink-50 p-6 rounded-[32px] border border-pink-100 md:col-span-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-pink-500 text-white rounded-xl shadow-md">
-                      <Tag size={20} />
+                      <Tag size={18} />
                     </div>
                     <div>
-                      <span className="font-bold text-pink-700 block">نظام الخصومات</span>
-                      <span className="text-[10px] text-pink-400 font-bold">تفعيل عرض خاص على هذا المنتج</span>
+                      <span className="font-bold text-pink-700 block text-sm">نظام الخصومات</span>
+                      <span className="text-[10px] text-pink-400 font-bold tracking-tight">إظهار عرض خاص للزبائن</span>
                     </div>
                   </div>
                   <input 
                     type="checkbox" 
-                    className="w-8 h-8 accent-pink-500 cursor-pointer rounded-xl"
+                    className="w-6 h-6 accent-pink-500 cursor-pointer rounded-lg"
                     checked={form.discountActive}
                     onChange={e => setForm({...form, discountActive: e.target.checked})}
                   />
                 </div>
                 {form.discountActive && (
-                  <div className="flex items-center gap-6 mt-6 animate-fade-in">
-                    <label className="text-sm font-bold text-pink-600 whitespace-nowrap">نسبة الخصم المئوية (%)</label>
+                  <div className="flex items-center gap-4 mt-4 animate-fade-in">
+                    <label className="text-xs font-bold text-pink-600 whitespace-nowrap">النسبة (%)</label>
                     <input 
                       type="number" 
-                      className="w-full p-4 bg-white border border-pink-100 rounded-2xl outline-none focus:border-pink-300 text-center font-bold text-xl text-pink-700 shadow-inner"
+                      className="w-full p-4 bg-white border border-pink-100 rounded-2xl outline-none focus:border-pink-300 text-center font-bold text-pink-700"
                       value={form.discountPercent}
                       onChange={e => setForm({...form, discountPercent: e.target.value})}
                     />
@@ -432,11 +420,10 @@ const AdminProducts: React.FC = () => {
               </div>
               
               <button 
-                className="w-full md:col-span-2 pink-primary-bg text-white py-6 rounded-[28px] font-bold text-2xl hover:shadow-2xl hover:scale-[1.01] active:scale-[0.98] transition-all mt-6 flex items-center justify-center gap-4 shadow-xl"
-                style={{ backgroundColor: activeTheme.primaryColor }}
+                className="w-full md:col-span-2 pink-primary-bg text-white py-6 rounded-[28px] font-bold text-xl hover:shadow-2xl transition-all mt-6 flex items-center justify-center gap-4 shadow-xl active:scale-[0.98]"
               >
-                <Upload size={28} />
-                تأكيد الحفظ والمزامنة الفورية
+                <Upload size={24} />
+                حفظ التغييرات السحابية
               </button>
             </form>
           </div>
