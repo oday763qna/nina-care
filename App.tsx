@@ -78,7 +78,7 @@ const App: React.FC = () => {
       setAds(a || []);
       if (s) setSettings(s);
     } catch (err) {
-      console.error("فشل المزامنة:", err);
+      console.error("Sync failed:", err);
     } finally {
       setIsLoading(false);
     }
@@ -86,11 +86,11 @@ const App: React.FC = () => {
 
   useEffect(() => {
     refreshData();
-    const savedCart = localStorage.getItem('nina_cart_v3');
+    const savedCart = localStorage.getItem('nina_cart_v4');
     if (savedCart) setCart(JSON.parse(savedCart));
 
     const channel = supabase
-      .channel('public-db-changes')
+      .channel('nina-sync-v4')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => refreshData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'ads' }, () => refreshData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, () => refreshData())
@@ -103,7 +103,7 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('nina_cart_v3', JSON.stringify(cart));
+    localStorage.setItem('nina_cart_v4', JSON.stringify(cart));
   }, [cart]);
 
   useEffect(() => {
@@ -139,7 +139,7 @@ const App: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-white">
       <div className="flex flex-col items-center gap-4">
         <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-pink-500"></div>
-        <p className="text-pink-500 font-bold animate-pulse text-sm">Nino Care...</p>
+        <p className="text-pink-500 font-bold animate-pulse text-xs tracking-widest">NINO CARE SYNCING...</p>
       </div>
     </div>
   );
@@ -178,28 +178,29 @@ const App: React.FC = () => {
             </Routes>
           </main>
 
-          {/* النقطة السرية في الزاوية اليمنى السفلية */}
+          {/* النقطة السرية في أقصى الزاوية اليمنى السفلية */}
           <Link 
             to="/admin/login" 
-            className="fixed bottom-0 right-0 w-[4px] h-[4px] bg-pink-500/10 rounded-full hover:bg-pink-600 hover:w-8 hover:h-8 transition-all duration-700 z-[9999] flex items-center justify-center group opacity-20 hover:opacity-100"
+            className="fixed bottom-0 right-0 w-[5px] h-[5px] bg-pink-500/5 hover:bg-pink-600 hover:w-8 hover:h-8 transition-all duration-1000 z-[9999] flex items-center justify-center group opacity-10 hover:opacity-100 rounded-tl-full"
+            title="إدارة"
           >
             <Lock size={12} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
           </Link>
 
           <footer className="bg-white border-t border-pink-50 py-16 px-4 mt-20">
-            <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 text-center md:text-right text-gray-400">
-               <div>
-                <h3 className="text-xl font-black mb-4 pink-primary">Nina Care</h3>
-                <p className="text-sm">متجر التجميل الأول - جودة استثنائية.</p>
+            <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 text-center md:text-right">
+              <div>
+                <h3 className="text-xl font-black mb-4 pink-primary uppercase tracking-tighter">Nina Care</h3>
+                <p className="text-gray-400 text-sm leading-relaxed max-w-xs mx-auto md:mx-0 font-bold">عالم الجمال والعناية المتكامل بين يديك.</p>
               </div>
               <div className="space-y-4">
                 <h3 className="text-lg font-bold text-gray-700">تواصل اجتماعي</h3>
                 <div className="flex justify-center md:justify-start gap-4">
-                  <a href={`https://wa.me/${settings.whatsappNumber}`} target="_blank" className="p-4 bg-green-50 text-green-600 rounded-2xl hover:bg-green-600 hover:text-white transition-all"><Phone size={20} /></a>
-                  <a href={settings.instagramUrl} target="_blank" className="p-4 bg-pink-50 text-pink-600 rounded-2xl hover:bg-pink-600 hover:text-white transition-all"><Instagram size={20} /></a>
+                  <a href={`https://wa.me/${settings.whatsappNumber}`} target="_blank" className="p-4 bg-green-50 text-green-600 rounded-2xl hover:bg-green-600 hover:text-white transition-all shadow-sm"><Phone size={20} /></a>
+                  <a href={settings.instagramUrl} target="_blank" className="p-4 bg-pink-50 text-pink-600 rounded-2xl hover:bg-pink-600 hover:text-white transition-all shadow-sm"><Instagram size={20} /></a>
                 </div>
               </div>
-              <p className="text-[10px] font-bold mt-4 uppercase">© 2026 Nina Care. Built with Supabase.</p>
+              <p className="text-[9px] text-gray-300 font-bold mt-4 uppercase tracking-[0.2em] col-span-full border-t border-gray-50 pt-8">© 2026 Nina Care. Securely Powered by Supabase.</p>
             </div>
           </footer>
         </div>
@@ -218,11 +219,12 @@ const AdminLayout: React.FC = () => {
       <aside className="w-full lg:w-72 bg-white border-l shadow-xl z-40 lg:sticky lg:top-20 lg:h-[calc(100vh-80px)] overflow-y-auto">
         <div className="p-8">
           <div className="flex items-center gap-4 mb-12 pb-6 border-b border-pink-50">
-            <div className="p-3 pink-primary-bg text-white rounded-2xl shadow-lg">
+            <div className="p-3 pink-primary-bg text-white rounded-2xl shadow-lg shadow-pink-100">
               <UserCheck size={28} />
             </div>
             <div>
-              <h2 className="text-xl font-bold">لوحة التحكم</h2>
+              <h2 className="text-xl font-black text-gray-800">النظام</h2>
+              <p className="text-[10px] text-green-500 font-bold tracking-widest uppercase">Cloud Sync</p>
             </div>
           </div>
           <nav className="space-y-2">
@@ -240,7 +242,7 @@ const AdminLayout: React.FC = () => {
                 <Link 
                   key={item.to}
                   to={item.to} 
-                  className={`flex items-center gap-4 p-4 rounded-2xl font-bold transition-all ${isActive ? 'pink-primary-bg text-white shadow-lg' : 'text-gray-400 hover:bg-pink-50 hover:text-pink-600'}`}
+                  className={`flex items-center gap-4 p-4 rounded-2xl font-bold transition-all ${isActive ? 'pink-primary-bg text-white shadow-xl shadow-pink-100' : 'text-gray-400 hover:bg-pink-50 hover:text-pink-600'}`}
                 >
                   <Icon size={22} />
                   <span>{item.label}</span>
@@ -250,9 +252,9 @@ const AdminLayout: React.FC = () => {
           </nav>
           <button 
             onClick={() => { sessionStorage.removeItem('admin_session'); window.location.hash = '/admin/login'; }}
-            className="w-full mt-16 py-3 bg-red-50 text-red-500 rounded-xl font-bold hover:bg-red-500 hover:text-white transition-all"
+            className="w-full mt-16 py-3 bg-red-50 text-red-500 rounded-xl font-bold hover:bg-red-500 hover:text-white transition-all border border-red-100"
           >
-            خروج
+            تسجيل خروج
           </button>
         </div>
       </aside>

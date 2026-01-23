@@ -5,8 +5,14 @@ import { Product, Category, Order, Ad, Settings } from '../types';
 export const dataService = {
   // المنتجات
   getProducts: async (): Promise<Product[]> => {
-    const { data, error } = await supabase.from('products').select('*').order('createdAt', { ascending: false });
-    return error ? [] : data || [];
+    try {
+      const { data, error } = await supabase.from('products').select('*').order('createdAt', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    } catch (e) {
+      console.error("Error fetching products:", e);
+      return [];
+    }
   },
   saveProduct: async (product: Product) => {
     const { error } = await supabase.from('products').upsert(product);
@@ -19,8 +25,13 @@ export const dataService = {
 
   // التصنيفات
   getCategories: async (): Promise<Category[]> => {
-    const { data, error } = await supabase.from('categories').select('*');
-    return error ? [] : data || [];
+    try {
+      const { data, error } = await supabase.from('categories').select('*');
+      if (error) throw error;
+      return data || [];
+    } catch (e) {
+      return [];
+    }
   },
   saveCategories: async (categories: Category[]) => {
     const { error } = await supabase.from('categories').upsert(categories);
@@ -29,22 +40,32 @@ export const dataService = {
 
   // الطلبات
   getOrders: async (): Promise<Order[]> => {
-    const { data, error } = await supabase.from('orders').select('*').order('createdAt', { ascending: false });
-    return error ? [] : data || [];
+    try {
+      const { data, error } = await supabase.from('orders').select('*').order('createdAt', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    } catch (e) {
+      return [];
+    }
   },
   saveOrders: async (orders: Order[]) => {
     const { error } = await supabase.from('orders').upsert(orders);
     if (error) throw error;
   },
   updateOrderStatus: async (id: string, status: string, reason?: string) => {
-    const { error } = await supabase.from('orders').update({ status, cancelReason: reason }).eq('id', id);
+    const { error } = await supabase.from('orders').update({ status, cancelReason: reason || "" }).eq('id', id);
     if (error) throw error;
   },
 
   // الإعدادات
   getSettings: async (): Promise<Settings | null> => {
-    const { data, error } = await supabase.from('settings').select('*').eq('id', 'global').maybeSingle();
-    return error ? null : data;
+    try {
+      const { data, error } = await supabase.from('settings').select('*').eq('id', 'global').maybeSingle();
+      if (error) throw error;
+      return data;
+    } catch (e) {
+      return null;
+    }
   },
   saveSettings: async (settings: Settings) => {
     const { error } = await supabase.from('settings').upsert({ id: 'global', ...settings });
@@ -53,8 +74,14 @@ export const dataService = {
 
   // الإعلانات (البنرات)
   getAds: async (): Promise<Ad[]> => {
-    const { data, error } = await supabase.from('ads').select('*').order('id', { ascending: false });
-    return error ? [] : data || [];
+    try {
+      const { data, error } = await supabase.from('ads').select('*').order('id', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    } catch (e) {
+      console.error("Error fetching ads:", e);
+      return [];
+    }
   },
   saveAds: async (ads: Ad[]) => {
     const { error } = await supabase.from('ads').upsert(ads);
