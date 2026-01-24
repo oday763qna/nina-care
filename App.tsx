@@ -34,7 +34,6 @@ import AdminOrders from './pages/AdminOrders';
 import AdminAds from './pages/AdminAds';
 import AdminThemes from './pages/AdminThemes';
 import AdminSettings from './pages/AdminSettings';
-import AIChat from './components/AIChat';
 
 interface AppContextType {
   cart: OrderItem[];
@@ -97,7 +96,6 @@ const App: React.FC = () => {
   useEffect(() => {
     refreshData();
     
-    // تحميل بيانات المستخدم من ذاكرة الهاتف
     const savedUser = localStorage.getItem('nina_user_v7');
     if (savedUser) setCurrentUser(JSON.parse(savedUser));
 
@@ -236,8 +234,6 @@ const App: React.FC = () => {
               <Route path="/admin/*" element={<AdminGuard><AdminLayout /></AdminGuard>} />
             </Routes>
           </main>
-
-          <AIChat />
 
           <footer className="bg-white border-t border-pink-50 py-16 px-4 mt-20">
             <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 text-center md:text-right">
