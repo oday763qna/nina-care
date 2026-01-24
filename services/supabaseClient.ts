@@ -1,37 +1,14 @@
+
 import { createClient } from '@supabase/supabase-js';
 
-// دالة جلب المتغيرات بشكل دفاعي جداً
-const getSafeEnv = (key: string): string => {
-  try {
-    // محاولة الوصول لـ process.env أولاً (شائع في بيئات التطوير والمنصات السحابية)
-    if (typeof process !== 'undefined' && process.env && (process.env as any)[key]) {
-      return (process.env as any)[key];
-    }
-    
-    // محاولة الوصول لـ import.meta.env (الخاص بـ Vite) بشكل آمن
-    const meta = import.meta as any;
-    if (meta && meta.env && meta.env[key]) {
-      return meta.env[key];
-    }
-  } catch (e) {
-    // تجاهل الأخطاء في حال كان الكود يعمل في بيئة لا تدعم هذه الخصائص
-  }
-  return '';
-};
+// بيانات مشروع Supabase الخاصة بالعميل
+const supabaseUrl = 'https://ntomjveiknykxmjtlrug.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50b21qdmVpa255a3htanRscnVnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkxNjUxMTYsImV4cCI6MjA4NDc0MTExNn0.SDeMq_3eJ6Y54RyzDOGlbcP7ycphT5umXd-TYUpf50I';
 
-const supabaseUrl = getSafeEnv('VITE_SUPABASE_URL');
-const supabaseAnonKey = getSafeEnv('VITE_SUPABASE_ANON_KEY');
+// إنشاء العميل للاتصال بقاعدة البيانات والخدمات السحابية
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// في حال عدم وجود مفاتيح، نستخدم قيم افتراضية لمنع انهيار التطبيق (White Screen)
-// ونقوم بطباعة رسالة تنبيه للمطور في الـ Console
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn(
-    "Nino Care: لم يتم العثور على مفاتيح Supabase. يرجى التأكد من إضافة VITE_SUPABASE_URL و VITE_SUPABASE_ANON_KEY."
-  );
+// التحقق من حالة الاتصال في وحدة التحكم للمطورين
+if (supabaseUrl && supabaseAnonKey) {
+  console.log("Nino Care: Connected successfully to Supabase Project [ntomjveiknykxmjtlrug]");
 }
-
-// إنشاء العميل - نستخدم رابطاً وهمياً صالحاً كبنية في حال غياب الرابط الحقيقي لتجنب الأخطاء الفورية
-export const supabase = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder-key'
-);

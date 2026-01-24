@@ -1,8 +1,15 @@
+
 export enum OrderStatus {
   PENDING = 'pending',
   ACCEPTED = 'accepted',
   REJECTED = 'rejected',
   EXECUTED = 'executed'
+}
+
+export interface User {
+  username: string;
+  fullName: string;
+  createdAt: number;
 }
 
 export interface Discount {
@@ -53,6 +60,7 @@ export interface Order {
   status: OrderStatus;
   cancelReason?: string;
   createdAt: number;
+  username?: string; // ربط الطلب بالمستخدم
 }
 
 export interface Ad {
