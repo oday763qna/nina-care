@@ -66,7 +66,11 @@ export const dataService = {
     }
   },
   addCategory: async (category: Category) => {
-    const { error } = await supabase.from('categories').insert(category);
+    const { error } = await supabase.from('categories').insert({
+      id: category.id,
+      name: category.name,
+      parentId: category.parentId || null
+    });
     if (error) throw error;
   },
   deleteCategory: async (id: string) => {
@@ -93,6 +97,10 @@ export const dataService = {
       status: status, 
       cancelReason: reason || "" 
     }).eq('id', id);
+    if (error) throw error;
+  },
+  deleteOrder: async (id: string) => {
+    const { error } = await supabase.from('orders').delete().eq('id', id);
     if (error) throw error;
   },
 

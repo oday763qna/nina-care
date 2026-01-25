@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Edit, Trash2, Tag, X, Image as ImageIcon, Upload, Camera, Check, Grid, Lock, Loader2 } from 'lucide-react';
+/* Added missing 'Package' icon import */
+import { Plus, Edit, Trash2, Tag, X, Image as ImageIcon, Upload, Camera, Check, Grid, Lock, Loader2, ChevronDown, ChevronRight, Layers, Package } from 'lucide-react';
 import { dataService } from '../services/dataService';
 import { Product, Category } from '../types';
 import { useApp } from '../App';
@@ -30,6 +31,7 @@ const AdminProducts: React.FC = () => {
   });
 
   const [newCatName, setNewCatName] = useState('');
+  const [newCatParentId, setNewCatParentId] = useState('');
   const [catLoading, setCatLoading] = useState(false);
 
   useEffect(() => {
@@ -108,7 +110,6 @@ const AdminProducts: React.FC = () => {
     }
   };
 
-  // Fix: Added handleDelete function to handle product deletion
   const handleDelete = async (id: string) => {
     if (window.confirm('هل تريد حذف هذا المنتج نهائياً؟')) {
       try {
@@ -126,9 +127,14 @@ const AdminProducts: React.FC = () => {
     if (!newCatName) return;
     setCatLoading(true);
     try {
-      const newCat: Category = { id: `cat_${Date.now()}`, name: newCatName };
+      const newCat: Category = { 
+        id: `cat_${Date.now()}`, 
+        name: newCatName,
+        parentId: newCatParentId || undefined
+      };
       await dataService.addCategory(newCat);
       setNewCatName('');
+      setNewCatParentId('');
       await loadData();
       await refreshData();
     } catch (err) {
@@ -139,11 +145,21 @@ const AdminProducts: React.FC = () => {
   };
 
   const handleDeleteCategory = async (id: string) => {
-    if (window.confirm('هل تريد حذف هذا القسم؟')) {
+    if (window.confirm('هل تريد حذف هذا القسم؟ (ملاحظة: سيتم فصل جميع المنتجات التابعة له)')) {
       await dataService.deleteCategory(id);
       await loadData();
       await refreshData();
     }
+  };
+
+  const getCategoryPath = (catId: string): string => {
+    const cat = categories.find(c => c.id === catId);
+    if (!cat) return 'غير مصنف';
+    if (cat.parentId) {
+      const parent = categories.find(c => c.id === cat.parentId);
+      return parent ? `${parent.name} > ${cat.name}` : cat.name;
+    }
+    return cat.name;
   };
 
   if (!isAuthorized) {
@@ -171,136 +187,230 @@ const AdminProducts: React.FC = () => {
 
   return (
     <div className="fade-in space-y-10 pb-32">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
-          <h1 className="text-4xl font-black text-gray-800">إدارة المخزون</h1>
-          <p className="text-gray-400 font-bold text-xs uppercase tracking-widest mt-1">تحديث الأقسام والمنتجات</p>
+          <h1 className="text-4xl font-black text-gray-800 tracking-tight">إدارة المخزون</h1>
+          <p className="text-gray-400 font-bold text-xs uppercase tracking-widest mt-1">تحديث الأقسام والمنتجات لحظياً</p>
         </div>
         <button 
           onClick={() => { setEditingProduct(null); setIsModalOpen(true); }}
-          className="pink-primary-bg text-white px-8 py-4 rounded-2xl font-bold flex items-center gap-2 shadow-lg hover:shadow-pink-200 transition-all active:scale-95"
+          className="pink-primary-bg text-white px-10 py-5 rounded-3xl font-black text-sm uppercase tracking-widest flex items-center gap-3 shadow-xl shadow-pink-100 hover:scale-[1.02] active:scale-95 transition-all"
         >
-          <Plus size={20} /> منتج جديد
+          <Plus size={20} /> إضافة منتج جديد
         </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
-        {/* قسم الفئات */}
-        <div className="lg:col-span-1">
-          <div className="bg-white p-6 rounded-[40px] shadow-sm border border-gray-50">
-            <h3 className="font-bold text-gray-700 mb-6 flex items-center gap-2"><Grid size={18} /> الأقسام</h3>
-            <div className="space-y-2 mb-6 max-h-60 overflow-y-auto no-scrollbar">
-              {categories.map(c => (
-                <div key={c.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-2xl group transition-all">
-                  <span className="text-sm font-bold text-gray-600">{c.name}</span>
-                  <button onClick={() => handleDeleteCategory(c.id)} className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Trash2 size={14} />
-                  </button>
+        {/* قسم الفئات المطور (أقسام داخل أقسام) */}
+        <div className="lg:col-span-1 space-y-8">
+          <div className="bg-white p-8 rounded-[40px] shadow-sm border border-gray-50">
+            <h3 className="font-black text-gray-800 mb-8 flex items-center gap-3"><Layers size={20} className="text-pink-500" /> إدارة الأقسام</h3>
+            
+            <div className="space-y-4 mb-10 max-h-[400px] overflow-y-auto no-scrollbar pr-2">
+              {categories.filter(c => !c.parentId).map(parent => (
+                <div key={parent.id} className="space-y-2">
+                  <div className="flex justify-between items-center p-4 bg-gray-50 rounded-2xl group border border-transparent hover:border-pink-100 transition-all">
+                    <span className="text-sm font-black text-gray-700">{parent.name}</span>
+                    <button onClick={() => handleDeleteCategory(parent.id)} className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                  {/* الأقسام الفرعية */}
+                  <div className="mr-6 space-y-2">
+                    {categories.filter(sub => sub.parentId === parent.id).map(sub => (
+                      <div key={sub.id} className="flex justify-between items-center p-3 bg-white border border-gray-100 rounded-xl group hover:border-pink-100 transition-all">
+                        <div className="flex items-center gap-2">
+                           <ChevronRight size={14} className="text-gray-300" />
+                           <span className="text-[11px] font-bold text-gray-500">{sub.name}</span>
+                        </div>
+                        <button onClick={() => handleDeleteCategory(sub.id)} className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
-            <div className="flex gap-2">
+
+            <div className="space-y-4 pt-6 border-t border-gray-50">
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">إضافة قسم جديد</p>
               <input 
-                placeholder="قسم جديد..." 
-                className="flex-1 p-3 bg-gray-50 rounded-xl outline-none text-xs font-bold border border-transparent focus:border-pink-200"
+                placeholder="اسم القسم..." 
+                className="w-full p-4 bg-gray-50 rounded-2xl outline-none text-xs font-bold border border-transparent focus:border-pink-200"
                 value={newCatName}
                 onChange={e => setNewCatName(e.target.value)}
               />
+              <select 
+                className="w-full p-4 bg-gray-50 rounded-2xl outline-none text-[10px] font-bold text-gray-500"
+                value={newCatParentId}
+                onChange={e => setNewCatParentId(e.target.value)}
+              >
+                <option value="">قسم رئيسي (بدون أب)</option>
+                {categories.filter(c => !c.parentId).map(c => (
+                  <option key={c.id} value={c.id}>داخل قسم: {c.name}</option>
+                ))}
+              </select>
               <button 
                 onClick={handleAddCategory}
-                disabled={catLoading}
-                className="p-3 bg-pink-50 text-pink-600 rounded-xl hover:bg-pink-600 hover:text-white transition-all"
+                disabled={catLoading || !newCatName}
+                className="w-full p-4 bg-pink-50 text-pink-600 rounded-2xl font-black text-xs hover:bg-pink-600 hover:text-white transition-all shadow-sm active:scale-95"
               >
-                {catLoading ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />}
+                {catLoading ? <Loader2 className="animate-spin mx-auto" size={16} /> : 'إضافة القسم الآن'}
               </button>
             </div>
           </div>
         </div>
 
-        {/* جدول المنتجات */}
+        {/* جدول المنتجات المطور */}
         <div className="lg:col-span-3">
-          <div className="bg-white rounded-[40px] shadow-sm border border-gray-50 overflow-hidden">
-             <table className="w-full text-right">
-               <thead className="bg-gray-50/50">
-                 <tr>
-                   <th className="p-6 text-xs text-gray-400 font-bold">المنتج</th>
-                   <th className="p-6 text-xs text-gray-400 font-bold text-center">القسم</th>
-                   <th className="p-6 text-xs text-gray-400 font-bold text-center">السعر</th>
-                   <th className="p-6 text-xs text-gray-400 font-bold text-center">الإجراء</th>
-                 </tr>
-               </thead>
-               <tbody className="divide-y divide-gray-50">
-                 {products.map(p => (
-                   <tr key={p.id} className="hover:bg-pink-50/5 transition-colors">
-                     <td className="p-6">
-                       <div className="flex items-center gap-4">
-                         <img src={p.images[0]} className="w-12 h-12 object-cover rounded-xl border border-gray-100 shadow-sm" />
-                         <span className="font-bold text-gray-700">{p.name}</span>
-                       </div>
-                     </td>
-                     <td className="p-6 text-center">
-                        <span className="bg-pink-50 text-pink-600 px-3 py-1 rounded-full text-[10px] font-bold">
-                          {categories.find(c => c.id === p.categoryId)?.name || 'غير مصنف'}
-                        </span>
-                     </td>
-                     <td className="p-6 text-center font-black text-pink-600">₪{p.price}</td>
-                     <td className="p-6">
-                        <div className="flex items-center justify-center gap-3">
-                          <button onClick={() => { setEditingProduct(p); setForm({ ...form, name: p.name, description: p.description, price: p.price.toString(), categoryId: p.categoryId, images: [p.images[0] || '', p.images[1] || ''] }); setIsModalOpen(true); }} className="p-2 bg-blue-50 text-blue-500 rounded-lg"><Edit size={16} /></button>
-                          <button onClick={() => handleDelete(p.id)} className="p-2 bg-red-50 text-red-500 rounded-lg"><Trash2 size={16} /></button>
-                        </div>
-                     </td>
+          <div className="bg-white rounded-[45px] shadow-sm border border-gray-50 overflow-hidden">
+             <div className="overflow-x-auto">
+               <table className="w-full text-right">
+                 <thead className="bg-gray-50/50">
+                   <tr>
+                     <th className="p-8 text-xs text-gray-400 font-black uppercase tracking-widest">المنتج</th>
+                     <th className="p-8 text-xs text-gray-400 font-black uppercase tracking-widest text-center">المسار (القسم)</th>
+                     <th className="p-8 text-xs text-gray-400 font-black uppercase tracking-widest text-center">السعر الصافي</th>
+                     <th className="p-8 text-xs text-gray-400 font-black uppercase tracking-widest text-center">الإجراءات</th>
                    </tr>
-                 ))}
-               </tbody>
-             </table>
+                 </thead>
+                 <tbody className="divide-y divide-gray-50">
+                   {products.map(p => (
+                     <tr key={p.id} className="hover:bg-pink-50/5 transition-all duration-300">
+                       <td className="p-8">
+                         <div className="flex items-center gap-5">
+                           <div className="relative">
+                             <img src={p.images[0]} className="w-16 h-16 object-cover rounded-2xl border border-gray-100 shadow-sm" />
+                             {p.discount.active && <div className="absolute -top-2 -right-2 bg-pink-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-black">%</div>}
+                           </div>
+                           <div className="flex flex-col">
+                             <span className="font-black text-gray-800 text-lg tracking-tight">{p.name}</span>
+                             <span className="text-[10px] text-gray-400 font-bold uppercase">ID: {p.id.slice(-5)}</span>
+                           </div>
+                         </div>
+                       </td>
+                       <td className="p-8 text-center">
+                          <div className="inline-flex items-center gap-2 bg-pink-50 text-pink-600 px-5 py-2 rounded-full text-[10px] font-black border border-pink-100 shadow-sm">
+                            <Layers size={12} />
+                            {getCategoryPath(p.categoryId)}
+                          </div>
+                       </td>
+                       <td className="p-8 text-center">
+                          <div className="flex flex-col items-center">
+                            <span className="font-black text-gray-900 text-xl tracking-tighter">₪{p.price.toFixed(2)}</span>
+                            {p.discount.active && <span className="text-[10px] text-pink-500 font-bold">خصم {p.discount.percent}%</span>}
+                          </div>
+                       </td>
+                       <td className="p-8">
+                          <div className="flex items-center justify-center gap-4">
+                            <button 
+                              onClick={() => { 
+                                setEditingProduct(p); 
+                                setForm({ 
+                                  name: p.name, 
+                                  description: p.description, 
+                                  price: p.price.toString(), 
+                                  categoryId: p.categoryId, 
+                                  images: [p.images[0] || '', p.images[1] || ''],
+                                  discountPercent: p.discount.percent.toString(),
+                                  discountActive: p.discount.active
+                                }); 
+                                setIsModalOpen(true); 
+                              }} 
+                              className="p-3 bg-blue-50 text-blue-500 rounded-2xl hover:bg-blue-500 hover:text-white transition-all shadow-sm"
+                            >
+                              <Edit size={18} />
+                            </button>
+                            <button 
+                              onClick={() => handleDelete(p.id)} 
+                              className="p-3 bg-red-50 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all shadow-sm"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
+                       </td>
+                     </tr>
+                   ))}
+                 </tbody>
+               </table>
+             </div>
+             {products.length === 0 && (
+               <div className="py-40 text-center flex flex-col items-center">
+                  <Package size={60} className="text-gray-100 mb-6" />
+                  <p className="text-gray-400 font-bold text-lg">لم تقومي بإضافة أي منتجات حتى الآن</p>
+               </div>
+             )}
           </div>
         </div>
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-           <div className="bg-white w-full max-w-2xl rounded-[50px] p-10 relative animate-scale-up max-h-[90vh] overflow-y-auto no-scrollbar">
-             <button onClick={() => setIsModalOpen(false)} className="absolute top-10 left-10 p-2 hover:bg-gray-100 rounded-full"><X size={24} /></button>
-             <h2 className="text-3xl font-black mb-10">{editingProduct ? 'تعديل المنتج' : 'إضافة منتج جديد'}</h2>
+        <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
+           <div className="bg-white w-full max-w-2xl rounded-[60px] p-10 md:p-14 relative animate-scale-up max-h-[90vh] overflow-y-auto no-scrollbar shadow-[0_0_100px_rgba(0,0,0,0.3)]">
+             <button onClick={() => setIsModalOpen(false)} className="absolute top-12 left-12 p-3 hover:bg-gray-100 rounded-full transition-colors"><X size={28} /></button>
+             <h2 className="text-4xl font-black mb-12 tracking-tight">{editingProduct ? 'تعديل بيانات المنتج' : 'إضافة منتج لنينو كير'}</h2>
              
-             <form onSubmit={handleSaveProduct} className="space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-400">اسم المنتج</label>
-                    <input required className="w-full p-4 bg-gray-50 rounded-2xl outline-none border border-transparent focus:border-pink-200" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
+             <form onSubmit={handleSaveProduct} className="space-y-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pr-2">اسم المنتج</label>
+                    <input required className="w-full p-5 bg-gray-50 rounded-[25px] outline-none border border-transparent focus:border-pink-300 transition-all font-bold" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-400">السعر (₪)</label>
-                    <input required type="number" className="w-full p-4 bg-gray-50 rounded-2xl outline-none" value={form.price} onChange={e => setForm({...form, price: e.target.value})} />
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pr-2">السعر الأساسي (₪)</label>
+                    <input required type="number" className="w-full p-5 bg-gray-50 rounded-[25px] outline-none border border-transparent focus:border-pink-300 transition-all font-bold" value={form.price} onChange={e => setForm({...form, price: e.target.value})} />
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-400">القسم</label>
-                  <select required className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-bold text-gray-600" value={form.categoryId} onChange={e => setForm({...form, categoryId: e.target.value})}>
-                    <option value="" disabled>اختر القسم المناسب</option>
-                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pr-2">القسم المختار</label>
+                    <select required className="w-full p-5 bg-gray-50 rounded-[25px] outline-none font-bold text-gray-700" value={form.categoryId} onChange={e => setForm({...form, categoryId: e.target.value})}>
+                      <option value="" disabled>اختاري من الأقسام المتاحة</option>
+                      {categories.map(c => (
+                        <option key={c.id} value={c.id}>{getCategoryPath(c.id)}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pr-2">نظام الخصم</label>
+                    <div className="flex gap-4">
+                      <input 
+                        type="number" 
+                        placeholder="%" 
+                        className="w-24 p-5 bg-gray-50 rounded-[25px] outline-none font-bold text-center" 
+                        value={form.discountPercent} 
+                        onChange={e => setForm({...form, discountPercent: e.target.value})} 
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => setForm({...form, discountActive: !form.discountActive})}
+                        className={`flex-1 rounded-[25px] font-black text-xs transition-all border-2 ${form.discountActive ? 'bg-pink-600 text-white border-pink-600' : 'bg-white text-gray-400 border-gray-100'}`}
+                      >
+                        {form.discountActive ? 'الخصم مفعل' : 'تفعيل الخصم؟'}
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-400">الوصف</label>
-                  <textarea className="w-full p-4 bg-gray-50 rounded-2xl outline-none h-24 resize-none" value={form.description} onChange={e => setForm({...form, description: e.target.value})} />
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pr-2">وصف المنتج الفني</label>
+                  <textarea className="w-full p-5 bg-gray-50 rounded-[30px] outline-none h-32 resize-none font-bold text-sm leading-relaxed" value={form.description} onChange={e => setForm({...form, description: e.target.value})} />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-6">
                   {[0, 1].map(idx => (
-                    <div key={idx} className="relative aspect-square bg-gray-50 rounded-[32px] border-2 border-dashed border-gray-100 flex items-center justify-center overflow-hidden group">
+                    <div key={idx} className="relative aspect-square bg-gray-50 rounded-[40px] border-4 border-dashed border-gray-100 flex items-center justify-center overflow-hidden group hover:border-pink-200 transition-all">
                       {form.images[idx] ? (
                         <>
                           <img src={form.images[idx]} className="w-full h-full object-cover" />
-                          <button type="button" onClick={() => { const i = [...form.images]; i[idx] = ''; setForm({...form, images: i}); }} className="absolute top-4 left-4 bg-red-500 text-white p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={12} /></button>
+                          <button type="button" onClick={() => { const i = [...form.images]; i[idx] = ''; setForm({...form, images: i}); }} className="absolute top-6 left-6 bg-red-500 text-white p-3 rounded-full shadow-xl opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={16} /></button>
                         </>
                       ) : (
-                        <button type="button" onClick={() => (idx === 0 ? fileInputRef1 : fileInputRef2).current?.click()} className="flex flex-col items-center gap-2 text-gray-300">
-                          <Camera size={24} />
-                          <span className="text-[10px] font-bold">ارفع صورة</span>
+                        <button type="button" onClick={() => (idx === 0 ? fileInputRef1 : fileInputRef2).current?.click()} className="flex flex-col items-center gap-4 text-gray-300 group-hover:text-pink-300 transition-colors">
+                          <Camera size={36} />
+                          <span className="text-xs font-black uppercase tracking-widest">رفع صورة المنتج</span>
                         </button>
                       )}
                     </div>
@@ -312,10 +422,10 @@ const AdminProducts: React.FC = () => {
 
                 <button 
                   disabled={saveLoading}
-                  className="w-full pink-primary-bg text-white py-5 rounded-3xl font-bold text-xl shadow-xl hover:shadow-pink-100 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                  className="w-full pink-primary-bg text-white py-6 rounded-[30px] font-black text-xl shadow-2xl shadow-pink-100 hover:scale-[1.01] active:scale-95 transition-all flex items-center justify-center gap-4 disabled:opacity-50"
                 >
-                  {saveLoading ? <Loader2 className="animate-spin" /> : <Upload size={22} />}
-                  {saveLoading ? 'جاري الرفع...' : 'حفظ ونشر المنتج'}
+                  {saveLoading ? <Loader2 className="animate-spin" /> : <Check size={28} />}
+                  {saveLoading ? 'جاري المزامنة...' : (editingProduct ? 'تحديث المنتج الآن' : 'نشر المنتج في المتجر')}
                 </button>
              </form>
            </div>

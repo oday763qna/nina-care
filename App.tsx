@@ -15,7 +15,12 @@ import {
   Lock,
   ClipboardList,
   User as UserIcon,
-  LogOut
+  LogOut,
+  CheckCircle,
+  XCircle,
+  ChevronLeft,
+  LayoutGrid,
+  Zap
 } from 'lucide-react';
 import { Product, Category, Settings, OrderItem, ThemePreset, Ad, User } from './types';
 import { dataService } from './services/dataService';
@@ -34,6 +39,13 @@ import AdminOrders from './pages/AdminOrders';
 import AdminAds from './pages/AdminAds';
 import AdminThemes from './pages/AdminThemes';
 import AdminSettings from './pages/AdminSettings';
+import ThemeDecorations from './components/ThemeDecorations';
+
+interface Toast {
+  message: string;
+  type: 'success' | 'error';
+  id: number;
+}
 
 interface AppContextType {
   cart: OrderItem[];
@@ -47,12 +59,14 @@ interface AppContextType {
   ads: Ad[];
   myOrderIds: string[];
   addOrderId: (id: string) => void;
+  removeOrderId: (id: string) => void;
   refreshData: () => Promise<void>;
   activeTheme: ThemePreset;
   isLoading: boolean;
   currentUser: User | null;
   setCurrentUser: (user: User | null) => void;
   logout: () => void;
+  notify: (message: string, type?: 'success' | 'error') => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -71,6 +85,7 @@ const App: React.FC = () => {
   const [ads, setAds] = useState<Ad[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [toasts, setToasts] = useState<Toast[]>([]);
 
   const activeTheme = THEME_PRESETS.find(t => t.id === settings.activeThemeId) || THEME_PRESETS[0];
 
@@ -136,6 +151,14 @@ const App: React.FC = () => {
     document.body.style.backgroundColor = activeTheme.secondaryColor;
   }, [activeTheme]);
 
+  const notify = (message: string, type: 'success' | 'error' = 'success') => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { message, type, id }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 4000);
+  };
+
   const logout = () => {
     setCurrentUser(null);
     setCart([]);
@@ -157,6 +180,7 @@ const App: React.FC = () => {
         image: product.images[0]
       }];
     });
+    notify('تم إضافة المنتج إلى السلة بنجاح! لمشاهدة معلومات الطلب اضغطي على السلة 🛒');
   };
 
   const removeFromCart = (productId: string) => setCart(prev => prev.filter(item => item.productId !== productId));
@@ -173,6 +197,10 @@ const App: React.FC = () => {
     });
   };
 
+  const removeOrderId = (id: string) => {
+    setMyOrderIds(prev => prev.filter(orderId => orderId !== id));
+  };
+
   if (isLoading) return (
     <div className="min-h-screen flex items-center justify-center bg-white">
       <div className="flex flex-col items-center gap-4">
@@ -185,11 +213,27 @@ const App: React.FC = () => {
   return (
     <AppContext.Provider value={{ 
       cart, addToCart, removeFromCart, updateCartQty, clearCart, 
-      settings, categories, products, ads, myOrderIds, addOrderId, refreshData, activeTheme, isLoading,
-      currentUser, setCurrentUser, logout
+      settings, categories, products, ads, myOrderIds, addOrderId, removeOrderId, refreshData, activeTheme, isLoading,
+      currentUser, setCurrentUser, logout, notify
     }}>
       <HashRouter>
-        <div className="min-h-screen flex flex-col font-cairo overflow-x-hidden">
+        <div className="min-h-screen flex flex-col font-cairo overflow-x-hidden relative">
+          <ThemeDecorations />
+          
+          <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[200] flex flex-col gap-3 pointer-events-none w-full max-w-sm px-4">
+            {toasts.map(toast => (
+              <div 
+                key={toast.id} 
+                className={`flex items-center gap-3 p-4 rounded-3xl shadow-2xl border-2 animate-in slide-in-from-top-4 fade-in duration-300 pointer-events-auto ${
+                  toast.type === 'success' ? 'bg-white border-green-100 text-green-700' : 'bg-red-50 border-red-100 text-red-700'
+                }`}
+              >
+                {toast.type === 'success' ? <CheckCircle className="shrink-0" /> : <XCircle className="shrink-0" />}
+                <p className="text-sm font-black leading-tight">{toast.message}</p>
+              </div>
+            ))}
+          </div>
+
           <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-pink-50">
             <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
               <Link to="/" className="flex items-center gap-3 active:scale-95 transition-transform">
@@ -223,7 +267,7 @@ const App: React.FC = () => {
             </div>
           </header>
 
-          <main className="flex-grow">
+          <main className="flex-grow relative z-10">
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/product/:id" element={<ProductPage />} />
@@ -231,11 +275,11 @@ const App: React.FC = () => {
               <Route path="/checkout" element={<CheckoutPage />} />
               <Route path="/order-status/:id" element={<OrderStatusPage />} />
               <Route path="/login" element={<LoginPage />} />
-              <Route path="/admin/*" element={<AdminGuard><AdminLayout /></AdminGuard>} />
+              <Route path="/admin/*" element={<AdminGuard><AdminLayout /></AdminLayout>} />
             </Routes>
           </main>
 
-          <footer className="bg-white border-t border-pink-50 py-16 px-4 mt-20">
+          <footer className="bg-white border-t border-pink-50 py-16 px-4 mt-20 relative z-10">
             <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 text-center md:text-right">
               <div>
                 <h3 className="text-xl font-black mb-4 pink-primary uppercase">Nina Care</h3>
@@ -248,7 +292,14 @@ const App: React.FC = () => {
                   <a href={settings.instagramUrl} target="_blank" className="p-4 bg-pink-50 text-pink-600 rounded-2xl hover:bg-pink-600 hover:text-white transition-all shadow-sm"><Instagram size={20} /></a>
                 </div>
               </div>
-              <p className="text-[9px] text-gray-300 font-bold mt-4 uppercase tracking-[0.2em] col-span-full border-t border-gray-50 pt-8">© 2026 Nina Care. Account Security by Oday.</p>
+              <div className="col-span-full border-t border-gray-100 pt-8 mt-4">
+                <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] mb-2">
+                  © 2026 Nina Care. Account Security by Oday.
+                </p>
+                <p className="text-xs font-black text-pink-600 uppercase tracking-widest">
+                  Engineered by Nina care
+                </p>
+              </div>
             </div>
           </footer>
         </div>
@@ -268,45 +319,81 @@ const AdminGuard: React.FC<{children: React.ReactNode}> = ({children}) => {
 const AdminLayout: React.FC = () => {
   const location = useLocation();
 
+  const menuSections = [
+    {
+      title: 'العمليات الأساسية',
+      items: [
+        { to: "/admin", label: "لوحة التحكم", icon: BarChart3 },
+        { to: "/admin/orders", label: "طلبات العملاء", icon: ShoppingBag },
+      ]
+    },
+    {
+      title: 'إدارة المحتوى',
+      items: [
+        { to: "/admin/products", label: "المنتجات والأقسام", icon: Package },
+        { to: "/admin/ads", label: "بنرات العروض", icon: ImageIcon },
+      ]
+    },
+    {
+      title: 'تخصيص النظام',
+      items: [
+        { to: "/admin/themes", label: "المظهر والمواسم", icon: Palette },
+        { to: "/admin/settings", label: "إعدادات المتجر", icon: SettingsIcon },
+      ]
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col lg:flex-row rtl font-cairo">
-      <aside className="w-full lg:w-72 bg-white border-l shadow-xl z-40 lg:sticky lg:top-20 lg:h-[calc(100vh-80px)] overflow-y-auto">
+      <aside className="w-full lg:w-80 bg-white border-l shadow-2xl z-40 lg:sticky lg:top-20 lg:h-[calc(100vh-80px)] overflow-y-auto no-scrollbar">
         <div className="p-8">
-          <div className="flex items-center gap-4 mb-12 pb-6 border-b border-pink-50">
+          <div className="flex items-center gap-4 mb-10 pb-6 border-b border-pink-50">
             <div className="p-3 pink-primary-bg text-white rounded-2xl shadow-lg">
               <UserCheck size={28} />
             </div>
             <div>
-              <h2 className="text-xl font-black text-gray-800">المدير</h2>
-              <p className="text-[10px] text-green-500 font-bold tracking-widest uppercase">Oday Auth</p>
+              <h2 className="text-xl font-black text-gray-800">المدير العام</h2>
+              <p className="text-[10px] text-green-500 font-bold tracking-widest uppercase">Oday Auth System</p>
             </div>
           </div>
-          <nav className="space-y-2">
-            {[
-              { to: "/admin", label: "الرئيسية", icon: BarChart3 },
-              { to: "/admin/products", label: "المنتجات", icon: Package },
-              { to: "/admin/orders", label: "الطلبيات", icon: ShoppingBag },
-              { to: "/admin/ads", label: "الإعلانات", icon: ImageIcon },
-              { to: "/admin/themes", label: "المظهر", icon: Palette },
-              { to: "/admin/settings", label: "الإعدادات", icon: SettingsIcon },
-            ].map((item) => {
-              const Icon = item.icon;
-              const isActive = location.pathname === item.to || (item.to === "/admin" && location.pathname === "/admin/");
-              return (
-                <Link 
-                  key={item.to}
-                  to={item.to} 
-                  className={`flex items-center gap-4 p-4 rounded-2xl font-bold transition-all ${isActive ? 'pink-primary-bg text-white shadow-xl shadow-pink-100' : 'text-gray-400 hover:bg-pink-50 hover:text-pink-600'}`}
-                >
-                  <Icon size={22} />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-          </nav>
+          
+          <div className="space-y-10">
+            {menuSections.map((section, idx) => (
+              <div key={idx} className="space-y-3">
+                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-4">{section.title}</h3>
+                <nav className="space-y-1.5">
+                  {section.items.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = location.pathname === item.to || (item.to === "/admin" && location.pathname === "/admin/");
+                    return (
+                      <Link 
+                        key={item.to}
+                        to={item.to} 
+                        className={`flex items-center gap-4 p-4 rounded-2xl font-bold transition-all relative group ${isActive ? 'bg-pink-600 text-white shadow-xl shadow-pink-100' : 'text-gray-400 hover:bg-pink-50 hover:text-pink-600'}`}
+                      >
+                        <Icon size={20} className={`${isActive ? 'scale-110' : 'group-hover:rotate-12'} transition-transform`} />
+                        <span className="text-sm">{item.label}</span>
+                        {isActive && <div className="absolute left-3 w-1.5 h-1.5 bg-white rounded-full animate-pulse" />}
+                      </Link>
+                    );
+                  })}
+                </nav>
+              </div>
+            ))}
+          </div>
+          
+          <div className="mt-12 p-6 bg-gray-50 rounded-[30px] border border-gray-100">
+             <div className="flex items-center gap-3 mb-3">
+                <Zap size={16} className="text-yellow-500" />
+                <span className="text-xs font-black text-gray-800">نظام نينا الذكي</span>
+             </div>
+             <p className="text-[10px] text-gray-400 font-bold leading-relaxed">
+               تتم مزامنة جميع التغييرات لحظياً مع قاعدة البيانات السحابية لضمان أفضل تجربة للمستخدم.
+             </p>
+          </div>
         </div>
       </aside>
-      <main className="flex-1 p-4 lg:p-10">
+      <main className="flex-1 p-4 lg:p-12 overflow-x-hidden">
         <div className="max-w-6xl mx-auto">
           <Routes>
             <Route index element={<AdminDashboard />} />

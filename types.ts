@@ -31,6 +31,7 @@ export interface Product {
 export interface Category {
   id: string;
   name: string;
+  parentId?: string; // لتمكين الأقسام الفرعية
 }
 
 export interface OrderItem {
@@ -60,7 +61,7 @@ export interface Order {
   status: OrderStatus;
   cancelReason?: string;
   createdAt: number;
-  username?: string; // ربط الطلب بالمستخدم
+  username?: string;
 }
 
 export interface Ad {
@@ -77,6 +78,8 @@ export interface ThemePreset {
   secondaryColor: string;
   bannerText: string;
   accentIcon: string;
+  overlayType?: 'none' | 'snow' | 'lanterns' | 'sparkles' | 'hearts' | 'stars';
+  welcomeMessage?: string;
 }
 
 export interface Settings {

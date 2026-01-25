@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Save, Lock, Phone, Instagram as InstagramIcon, MessageSquare } from 'lucide-react';
+import { Save, Lock, Phone, Instagram as InstagramIcon, MessageSquare, Video } from 'lucide-react';
 import { dataService } from '../services/dataService';
 import { Settings } from '../types';
 import { useApp } from '../App';

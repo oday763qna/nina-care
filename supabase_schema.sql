@@ -1,8 +1,8 @@
+
 -- كود إنشاء جداول متجر نينو كير (Nino Care)
 -- يرجى نسخ هذا الكود وتشغيله في SQL Editor الخاص بـ Supabase
 
 -- 1. جدول المستخدمين (نظام الحسابات)
--- تم استخدام snake_case لتوافق منطق التسجيل والدخول
 CREATE TABLE IF NOT EXISTS users (
   username TEXT PRIMARY KEY,
   password TEXT NOT NULL,
@@ -10,14 +10,14 @@ CREATE TABLE IF NOT EXISTS users (
   created_at BIGINT NOT NULL
 );
 
--- 2. جدول تصنيفات المنتجات
+-- 2. جدول تصنيفات المنتجات (تحديث ليشمل الأقسام الفرعية)
 CREATE TABLE IF NOT EXISTS categories (
   id TEXT PRIMARY KEY,
-  name TEXT NOT NULL
+  name TEXT NOT NULL,
+  "parentId" TEXT REFERENCES categories(id) ON DELETE SET NULL
 );
 
 -- 3. جدول المنتجات
--- تم استخدام "double quotes" لأسماء الأعمدة التي تحتوي على CamelCase لتطابق كود JavaScript
 CREATE TABLE IF NOT EXISTS products (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
@@ -60,12 +60,11 @@ CREATE TABLE IF NOT EXISTS orders (
 );
 
 -- إدراج بيانات المسؤول الافتراضي
--- ملاحظة: اليوزر odayqutqut55 هو المدير المخول بدخول لوحة التحكم في الكود
 INSERT INTO users (username, password, full_name, created_at)
 VALUES ('odayqutqut55', '200820102026', 'المدير العام', 1700000000000)
 ON CONFLICT (username) DO NOTHING;
 
--- إدراج الإعدادات الافتراضية لضمان عمل المتجر فوراً
+-- إدراج الإعدادات الافتراضية
 INSERT INTO settings (
   id, 
   "whatsappNumber", 
@@ -86,9 +85,9 @@ VALUES (
 )
 ON CONFLICT (id) DO NOTHING;
 
--- تفعيل ميزة المزامنة اللحظية (Realtime) لجميع الجداول الأساسية
--- هذا يسمح للتطبيق بتحديث البيانات فور تغييرها في قاعدة البيانات دون إعادة تحميل الصفحة
+-- تفعيل ميزة المزامنة اللحظية (Realtime)
 ALTER PUBLICATION supabase_realtime ADD TABLE orders;
 ALTER PUBLICATION supabase_realtime ADD TABLE products;
 ALTER PUBLICATION supabase_realtime ADD TABLE settings;
 ALTER PUBLICATION supabase_realtime ADD TABLE ads;
+ALTER PUBLICATION supabase_realtime ADD TABLE categories;

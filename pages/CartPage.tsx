@@ -7,32 +7,42 @@ import { dataService } from '../services/dataService';
 import { Order, OrderStatus } from '../types';
 
 const CartPage: React.FC = () => {
-  const { cart, updateCartQty, removeFromCart, activeTheme, myOrderIds } = useApp();
+  const { cart, updateCartQty, removeFromCart, activeTheme, myOrderIds, removeOrderId } = useApp();
   const [pendingOrders, setPendingOrders] = useState<Order[]>([]);
   const [previousOrders, setPreviousOrders] = useState<Order[]>([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchMyOrders = async () => {
-      if (myOrderIds.length === 0) return;
-      
-      setIsLoadingOrders(true);
-      try {
-        const allOrders = await dataService.getOrders();
-        // تصفية الطلبات لتشمل فقط ما هو موجود في "خزنة الهاتف المحلية"
-        const filtered = allOrders.filter(o => myOrderIds.includes(o.id));
-        
-        setPendingOrders(filtered.filter(o => o.status === OrderStatus.PENDING).sort((a, b) => b.createdAt - a.createdAt));
-        setPreviousOrders(filtered.filter(o => o.status !== OrderStatus.PENDING).sort((a, b) => b.createdAt - a.createdAt));
-      } catch (err) {
-        console.error("Failed to load local history:", err);
-      } finally {
-        setIsLoadingOrders(false);
-      }
-    };
     fetchMyOrders();
   }, [myOrderIds]);
+
+  const fetchMyOrders = async () => {
+    if (myOrderIds.length === 0) {
+      setPendingOrders([]);
+      setPreviousOrders([]);
+      return;
+    }
+    
+    setIsLoadingOrders(true);
+    try {
+      const allOrders = await dataService.getOrders();
+      const filtered = allOrders.filter(o => myOrderIds.includes(o.id));
+      
+      setPendingOrders(filtered.filter(o => o.status === OrderStatus.PENDING).sort((a, b) => b.createdAt - a.createdAt));
+      setPreviousOrders(filtered.filter(o => o.status !== OrderStatus.PENDING).sort((a, b) => b.createdAt - a.createdAt));
+    } catch (err) {
+      console.error("Failed to load local history:", err);
+    } finally {
+      setIsLoadingOrders(false);
+    }
+  };
+
+  const handleClearActivity = (orderId: string) => {
+    if (window.confirm('هل تريد إزالة هذا الطلب من سجل نشاطك المحلي؟')) {
+      removeOrderId(orderId);
+    }
+  };
 
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.qty, 0);
 
@@ -138,33 +148,40 @@ const CartPage: React.FC = () => {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {pendingOrders.map(order => (
-                  <Link 
-                    to={`/order-status/${order.id}`} 
-                    key={order.id} 
-                    className="bg-white p-6 rounded-[32px] border border-yellow-100 shadow-sm hover:shadow-md transition-all group"
-                  >
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <p className="text-xs text-gray-400 mb-1">#{order.id}</p>
-                        <p className="text-sm font-bold text-gray-700">{new Date(order.createdAt).toLocaleDateString('ar-EG')}</p>
+                  <div key={order.id} className="relative group">
+                    <Link 
+                      to={`/order-status/${order.id}`} 
+                      className="bg-white p-6 block rounded-[32px] border border-yellow-100 shadow-sm hover:shadow-md transition-all"
+                    >
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <p className="text-xs text-gray-400 mb-1">#{order.id}</p>
+                          <p className="text-sm font-bold text-gray-700">{new Date(order.createdAt).toLocaleDateString('ar-EG')}</p>
+                        </div>
+                        <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(order.status)}`}>
+                          {getStatusIcon(order.status)}
+                          {getStatusText(order.status)}
+                        </div>
                       </div>
-                      <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(order.status)}`}>
-                        {getStatusIcon(order.status)}
-                        {getStatusText(order.status)}
+                      <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-50">
+                        <div className="flex -space-x-3 rtl:space-x-reverse">
+                          {order.items.slice(0, 3).map((item, idx) => (
+                            <img key={idx} src={item.image} alt="" className="w-10 h-10 rounded-full border-2 border-white object-cover" />
+                          ))}
+                        </div>
+                        <div className="text-left">
+                          <p className="text-xs text-gray-400">الإجمالي</p>
+                          <p className="font-bold pink-primary text-lg">₪{order.totals.grandTotal.toFixed(2)}</p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-50">
-                      <div className="flex -space-x-3 rtl:space-x-reverse">
-                        {order.items.slice(0, 3).map((item, idx) => (
-                          <img key={idx} src={item.image} alt="" className="w-10 h-10 rounded-full border-2 border-white object-cover" />
-                        ))}
-                      </div>
-                      <div className="text-left">
-                        <p className="text-xs text-gray-400">الإجمالي</p>
-                        <p className="font-bold pink-primary text-lg">₪{order.totals.grandTotal.toFixed(2)}</p>
-                      </div>
-                    </div>
-                  </Link>
+                    </Link>
+                    <button 
+                      onClick={(e) => { e.preventDefault(); handleClearActivity(order.id); }}
+                      className="absolute top-2 left-2 p-2 bg-red-50 text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 ))}
               </div>
             </section>
@@ -175,37 +192,44 @@ const CartPage: React.FC = () => {
             <section>
               <div className="flex items-center gap-3 mb-8 pr-4 border-r-4 border-pink-500">
                 <ClipboardList size={24} className="text-gray-400" />
-                <h2 className="text-2xl font-bold text-gray-800">سجل طلبات هاتفك</h2>
+                <h2 className="text-2xl font-bold text-gray-800">سجل نشاط هاتفك</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {previousOrders.map(order => (
-                  <Link 
-                    to={`/order-status/${order.id}`} 
-                    key={order.id} 
-                    className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm hover:shadow-md transition-all group"
-                  >
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <p className="text-xs text-gray-400 mb-1">#{order.id}</p>
-                        <p className="text-sm font-bold text-gray-700">{new Date(order.createdAt).toLocaleDateString('ar-EG')}</p>
+                  <div key={order.id} className="relative group">
+                    <Link 
+                      to={`/order-status/${order.id}`} 
+                      className="bg-white p-6 block rounded-[32px] border border-gray-100 shadow-sm hover:shadow-md transition-all"
+                    >
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <p className="text-xs text-gray-400 mb-1">#{order.id}</p>
+                          <p className="text-sm font-bold text-gray-700">{new Date(order.createdAt).toLocaleDateString('ar-EG')}</p>
+                        </div>
+                        <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(order.status)}`}>
+                          {getStatusIcon(order.status)}
+                          {getStatusText(order.status)}
+                        </div>
                       </div>
-                      <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(order.status)}`}>
-                        {getStatusIcon(order.status)}
-                        {getStatusText(order.status)}
+                      <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-50">
+                        <div className="flex -space-x-3 rtl:space-x-reverse">
+                          {order.items.slice(0, 3).map((item, idx) => (
+                            <img key={idx} src={item.image} alt="" className="w-10 h-10 rounded-full border-2 border-white object-cover" />
+                          ))}
+                        </div>
+                        <div className="text-left">
+                          <p className="text-xs text-gray-400">الإجمالي</p>
+                          <p className="font-bold pink-primary text-lg">₪{order.totals.grandTotal.toFixed(2)}</p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-50">
-                      <div className="flex -space-x-3 rtl:space-x-reverse">
-                        {order.items.slice(0, 3).map((item, idx) => (
-                          <img key={idx} src={item.image} alt="" className="w-10 h-10 rounded-full border-2 border-white object-cover" />
-                        ))}
-                      </div>
-                      <div className="text-left">
-                        <p className="text-xs text-gray-400">الإجمالي</p>
-                        <p className="font-bold pink-primary text-lg">₪{order.totals.grandTotal.toFixed(2)}</p>
-                      </div>
-                    </div>
-                  </Link>
+                    </Link>
+                    <button 
+                      onClick={(e) => { e.preventDefault(); handleClearActivity(order.id); }}
+                      className="absolute top-2 left-2 p-2 bg-red-50 text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 ))}
               </div>
             </section>
@@ -250,7 +274,7 @@ const CartPage: React.FC = () => {
               <div className="mt-8 flex items-start gap-3 bg-blue-50 p-4 rounded-2xl border border-blue-100">
                 <AlertCircle size={20} className="text-blue-500 shrink-0" />
                 <p className="text-[11px] text-blue-700 leading-relaxed">
-                  بمجرد تقديم طلبك، سيتم حفظه في قاعدة بيانات هاتفك لتتمكني من متابعته لاحقاً بكل سهولة.
+                  بمجرد تقديم طلبك، سيتم حفظه في قاعدة بيانات هاتفك لتتمكني من متابعته لاحقاً بكل سهولة. يمكنك مسح السجل المحلي في أي وقت.
                 </p>
               </div>
             </div>
