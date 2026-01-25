@@ -7,7 +7,7 @@ import { dataService } from '../services/dataService';
 import { Order, OrderStatus } from '../types';
 
 const CartPage: React.FC = () => {
-  const { cart, updateCartQty, removeFromCart, activeTheme, myOrderIds, removeOrderId } = useApp();
+  const { cart, updateCartQty, removeFromCart, activeTheme, myOrderIds, removeOrderId, notify } = useApp();
   const [pendingOrders, setPendingOrders] = useState<Order[]>([]);
   const [previousOrders, setPreviousOrders] = useState<Order[]>([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
@@ -38,9 +38,19 @@ const CartPage: React.FC = () => {
     }
   };
 
-  const handleClearActivity = (orderId: string) => {
-    if (window.confirm('هل تريد إزالة هذا الطلب من سجل نشاطك المحلي؟')) {
-      removeOrderId(orderId);
+  const handleClearActivity = async (orderId: string) => {
+    if (window.confirm('هل تريد حذف هذا الطلب نهائياً من سجلاتك ومن النظام؟')) {
+      try {
+        // حذف من قاعدة البيانات السحابية أولاً
+        await dataService.deleteOrder(orderId);
+        // حذف من الذاكرة المحلية للجهاز
+        removeOrderId(orderId);
+        notify('تم حذف الطلب نهائياً بنجاح');
+      } catch (err) {
+        notify('فشل في حذف الطلب من النظام، قد يكون قد حُذف مسبقاً', 'error');
+        // في حال فشل الحذف السحابي (مثلاً الطلب حذفه الأدمن)، نحذفه محلياً لتنظيف القائمة
+        removeOrderId(orderId);
+      }
     }
   };
 
@@ -177,7 +187,7 @@ const CartPage: React.FC = () => {
                     </Link>
                     <button 
                       onClick={(e) => { e.preventDefault(); handleClearActivity(order.id); }}
-                      className="absolute top-2 left-2 p-2 bg-red-50 text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                      className="absolute top-2 left-2 p-2 bg-red-50 text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm z-20"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -190,7 +200,7 @@ const CartPage: React.FC = () => {
           {/* Section 3: Previous Orders History (Local Only) */}
           {previousOrders.length > 0 && (
             <section>
-              <div className="flex items-center gap-3 mb-8 pr-4 border-r-4 border-pink-500">
+              <div className="flex items-center gap-3 mb-8 pr-4 border-r-4 border-pink-500" style={{ borderColor: activeTheme.primaryColor }}>
                 <ClipboardList size={24} className="text-gray-400" />
                 <h2 className="text-2xl font-bold text-gray-800">سجل نشاط هاتفك</h2>
               </div>
@@ -225,7 +235,7 @@ const CartPage: React.FC = () => {
                     </Link>
                     <button 
                       onClick={(e) => { e.preventDefault(); handleClearActivity(order.id); }}
-                      className="absolute top-2 left-2 p-2 bg-red-50 text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                      className="absolute top-2 left-2 p-2 bg-red-50 text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm z-20"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -274,7 +284,7 @@ const CartPage: React.FC = () => {
               <div className="mt-8 flex items-start gap-3 bg-blue-50 p-4 rounded-2xl border border-blue-100">
                 <AlertCircle size={20} className="text-blue-500 shrink-0" />
                 <p className="text-[11px] text-blue-700 leading-relaxed">
-                  بمجرد تقديم طلبك، سيتم حفظه في قاعدة بيانات هاتفك لتتمكني من متابعته لاحقاً بكل سهولة. يمكنك مسح السجل المحلي في أي وقت.
+                  بمجرد تقديم طلبك، سيتم حفظه في قاعدة بيانات هاتفك لتتمكني من متابعته لاحقاً بكل سهولة. يمكنك مسح السجل المحلي والسحابي في أي وقت.
                 </p>
               </div>
             </div>

@@ -275,7 +275,7 @@ const App: React.FC = () => {
               <Route path="/checkout" element={<CheckoutPage />} />
               <Route path="/order-status/:id" element={<OrderStatusPage />} />
               <Route path="/login" element={<LoginPage />} />
-              <Route path="/admin/*" element={<AdminGuard><AdminLayout /></AdminLayout>} />
+              <Route path="/admin/*" element={<AdminGuard><AdminLayout /></AdminGuard>} />
             </Routes>
           </main>
 
