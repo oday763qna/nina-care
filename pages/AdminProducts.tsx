@@ -1,13 +1,12 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-/* Added missing 'Package' icon import */
 import { Plus, Edit, Trash2, Tag, X, Image as ImageIcon, Upload, Camera, Check, Grid, Lock, Loader2, ChevronDown, ChevronRight, Layers, Package } from 'lucide-react';
 import { dataService } from '../services/dataService';
 import { Product, Category } from '../types';
 import { useApp } from '../App';
 
 const AdminProducts: React.FC = () => {
-  const { refreshData } = useApp();
+  const { refreshData, settings } = useApp();
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [password, setPassword] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
@@ -49,7 +48,8 @@ const AdminProducts: React.FC = () => {
 
   const handleAuth = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === '2008' || password.toLowerCase() === 'pass it 2008') {
+    const validPassword = settings?.productMgmtPassword || '2008';
+    if (password === validPassword) {
       setIsAuthorized(true);
       setAuthError(false);
     } else {

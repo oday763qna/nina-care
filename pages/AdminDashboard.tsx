@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Package, ShoppingCart, TrendingUp, AlertCircle, Clock, Zap, Users, ArrowUpRight, Bell, Smartphone, Monitor } from 'lucide-react';
 import { dataService } from '../services/dataService';
@@ -16,8 +17,8 @@ const AdminDashboard: React.FC = () => {
         dataService.getOrders(),
         dataService.getProducts()
       ]);
-      setOrders(o);
-      setProducts(p);
+      setOrders(o || []);
+      setProducts(p || []);
     } catch (err) {
       console.error("خطأ في جلب البيانات الحية:", err);
     } finally {
@@ -30,9 +31,12 @@ const AdminDashboard: React.FC = () => {
 
     // الاستماع الحصري لأحداث الطلبات الجديدة لإظهار تنبيه لحظي
     const channel = supabase
-      .channel('dashboard-live-updates')
+      .channel('dashboard-live-updates-v9')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, (payload) => {
-        setLastEvent(`طلب جديد من ${payload.new.customer.name}`);
+        const newOrder = payload.new as Order;
+        if (newOrder && newOrder.customer) {
+          setLastEvent(`طلب جديد من ${newOrder.customer.name}`);
+        }
         fetchData();
         // إخفاء التنبيه بعد 5 ثوانٍ
         setTimeout(() => setLastEvent(null), 5000);
@@ -55,7 +59,7 @@ const AdminDashboard: React.FC = () => {
 
   const totalSales = orders
     .filter(o => o.status === OrderStatus.ACCEPTED || o.status === OrderStatus.EXECUTED)
-    .reduce((acc, o) => acc + o.totals.grandTotal, 0);
+    .reduce((acc, o) => acc + (o.totals?.grandTotal || 0), 0);
 
   const pendingCount = orders.filter(o => o.status === OrderStatus.PENDING).length;
   
@@ -66,10 +70,10 @@ const AdminDashboard: React.FC = () => {
 
   const productStats = products.map(p => {
     const orderCount = orders.reduce((acc, o) => {
-      const item = o.items.find(i => i.productId === p.id);
+      const item = o.items?.find(i => i.productId === p.id);
       return acc + (item?.qty || 0);
     }, 0);
-    return { name: p.name, count: orderCount, image: p.images[0] };
+    return { name: p.name, count: orderCount, image: p.images?.[0] || '' };
   }).sort((a, b) => b.count - a.count);
 
   return (
@@ -143,7 +147,7 @@ const AdminDashboard: React.FC = () => {
             {productStats.slice(0, 5).map((stat, i) => (
               <div key={i} className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl border border-transparent hover:border-pink-100 transition-all">
                 <div className="flex items-center gap-4">
-                  <img src={stat.image} alt="" className="w-12 h-12 rounded-xl object-cover shadow-sm" />
+                  {stat.image && <img src={stat.image} alt="" className="w-12 h-12 rounded-xl object-cover shadow-sm" />}
                   <div>
                     <span className="font-bold text-gray-800 block">{stat.name}</span>
                     <span className="text-[10px] text-gray-400 font-bold uppercase">{stat.count} وحدة مباعة</span>
@@ -174,8 +178,8 @@ const AdminDashboard: React.FC = () => {
                 }`}></div>
                 <div className="flex flex-col">
                    <p className="text-[10px] text-gray-400 font-bold mb-1">{new Date(order.createdAt).toLocaleTimeString('ar-EG')}</p>
-                   <p className="text-sm font-bold text-gray-700">طلب جديد: {order.customer.name}</p>
-                   <p className="text-[10px] text-pink-500 font-black">₪{order.totals.grandTotal}</p>
+                   <p className="text-sm font-bold text-gray-700">طلب جديد: {order.customer?.name || 'عميل نينو'}</p>
+                   <p className="text-[10px] text-pink-500 font-black">₪{order.totals?.grandTotal || 0}</p>
                 </div>
               </div>
             ))}

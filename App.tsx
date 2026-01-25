@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, createContext, useContext } from 'react';
+import React, { useState, useEffect, createContext, useContext, useMemo } from 'react';
 import { HashRouter, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { 
   ShoppingBag, 
@@ -22,7 +22,7 @@ import {
   LayoutGrid,
   Zap
 } from 'lucide-react';
-import { Product, Category, Settings, OrderItem, ThemePreset, Ad, User } from './types';
+import { Product, Category, Settings, OrderItem, ThemePreset, Ad, User, OrderStatus, Order } from './types';
 import { dataService } from './services/dataService';
 import { THEME_PRESETS, DEFAULT_SETTINGS } from './constants';
 import { supabase } from './services/supabaseClient';
@@ -57,6 +57,7 @@ interface AppContextType {
   categories: Category[];
   products: Product[];
   ads: Ad[];
+  orders: Order[];
   myOrderIds: string[];
   addOrderId: (id: string) => void;
   removeOrderId: (id: string) => void;
@@ -83,23 +84,28 @@ const App: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [ads, setAds] = useState<Ad[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const activeTheme = THEME_PRESETS.find(t => t.id === settings.activeThemeId) || THEME_PRESETS[0];
+  const activeTheme = useMemo(() => 
+    THEME_PRESETS.find(t => t.id === settings.activeThemeId) || THEME_PRESETS[0]
+  , [settings.activeThemeId]);
 
   const refreshData = async () => {
     try {
-      const [p, c, s, a] = await Promise.all([
+      const [p, c, s, a, o] = await Promise.all([
         dataService.getProducts(),
         dataService.getCategories(),
         dataService.getSettings(),
-        dataService.getAds()
+        dataService.getAds(),
+        dataService.getOrders()
       ]);
       setProducts(p || []);
       setCategories(c || []);
       setAds(a || []);
+      setOrders(o || []);
       if (s) setSettings(s);
     } catch (err) {
       console.error("Sync failed:", err);
@@ -121,10 +127,11 @@ const App: React.FC = () => {
     if (savedOrders) setMyOrderIds(JSON.parse(savedOrders));
 
     const channel = supabase
-      .channel('nina-sync-v7')
+      .channel('nina-global-sync-v9')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => refreshData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'ads' }, () => refreshData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, () => refreshData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => refreshData())
       .subscribe();
 
     return () => {
@@ -205,7 +212,7 @@ const App: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-white">
       <div className="flex flex-col items-center gap-4">
         <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-pink-500"></div>
-        <p className="text-pink-500 font-bold animate-pulse text-xs tracking-widest uppercase">Initializing Nina Database...</p>
+        <p className="text-pink-500 font-bold animate-pulse text-xs tracking-widest uppercase">Nino Care Syncing...</p>
       </div>
     </div>
   );
@@ -213,7 +220,7 @@ const App: React.FC = () => {
   return (
     <AppContext.Provider value={{ 
       cart, addToCart, removeFromCart, updateCartQty, clearCart, 
-      settings, categories, products, ads, myOrderIds, addOrderId, removeOrderId, refreshData, activeTheme, isLoading,
+      settings, categories, products, ads, orders, myOrderIds, addOrderId, removeOrderId, refreshData, activeTheme, isLoading,
       currentUser, setCurrentUser, logout, notify
     }}>
       <HashRouter>
@@ -318,13 +325,18 @@ const AdminGuard: React.FC<{children: React.ReactNode}> = ({children}) => {
 
 const AdminLayout: React.FC = () => {
   const location = useLocation();
+  const { orders } = useApp();
+
+  const pendingCount = useMemo(() => 
+    orders.filter(o => o.status === OrderStatus.PENDING).length
+  , [orders]);
 
   const menuSections = [
     {
       title: 'العمليات الأساسية',
       items: [
         { to: "/admin", label: "لوحة التحكم", icon: BarChart3 },
-        { to: "/admin/orders", label: "طلبات العملاء", icon: ShoppingBag },
+        { to: "/admin/orders", label: "طلبات العملاء", icon: ShoppingBag, badge: pendingCount },
       ]
     },
     {
@@ -372,7 +384,12 @@ const AdminLayout: React.FC = () => {
                         className={`flex items-center gap-4 p-4 rounded-2xl font-bold transition-all relative group ${isActive ? 'bg-pink-600 text-white shadow-xl shadow-pink-100' : 'text-gray-400 hover:bg-pink-50 hover:text-pink-600'}`}
                       >
                         <Icon size={20} className={`${isActive ? 'scale-110' : 'group-hover:rotate-12'} transition-transform`} />
-                        <span className="text-sm">{item.label}</span>
+                        <span className="text-sm flex-1">{item.label}</span>
+                        {item.badge && item.badge > 0 && (
+                          <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full animate-pulse">
+                            {item.badge}
+                          </span>
+                        )}
                         {isActive && <div className="absolute left-3 w-1.5 h-1.5 bg-white rounded-full animate-pulse" />}
                       </Link>
                     );
